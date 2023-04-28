@@ -27,10 +27,14 @@ def get_user_rankings(user):
     # Filter the DataFrame to only show the rankings for the current user
     user_rankings = df[df["user"] == user].reset_index(drop=True)
 
-    # Only return the columns that need to be displayed
-    user_rankings = user_rankings[["scenarios", "ranking"]]
+    # Only return the columns that need to be displayed, and the latest rows
+    user_rankings = (
+        user_rankings[["scenarios", "ranking"]]
+        .tail(len(data_to_display))
+        .reset_index(drop=True)
+    )
 
-    return user_rankings.tail(len(data_to_display))
+    return user_rankings
 
 
 def save_rankings_to_file(rankings, user):
@@ -68,16 +72,43 @@ data_to_display = data[data["scenarios"].isin(options_to_display)]
 
 # Display the options and radio buttons for the current user
 st.write(f"{st.session_state['user']}'s rankings:")
+col1, col2, col3, col4, col5 = st.columns(5)
 rankings = []
 for i, row in data_to_display.iterrows():
-    st.write(row["scenarios"])
-    ranking = st.radio(
-        f"Rank {i+1}", [1, 2, 3, 4, 5], key=f"{st.session_state['user']}-{i}"
-    )
-    rankings.append(ranking)
+    if i == 0:
+        radio = col1.radio(
+            f"{row['scenarios']}",
+            [1, 2, 3, 4, 5],
+            key=f"{st.session_state['user']}-{i}",
+        )
+    elif i == 1:
+        radio = col2.radio(
+            f"{row['scenarios']}",
+            [1, 2, 3, 4, 5],
+            key=f"{st.session_state['user']}-{i}",
+        )
+    elif i == 2:
+        radio = col3.radio(
+            f"{row['scenarios']}",
+            [1, 2, 3, 4, 5],
+            key=f"{st.session_state['user']}-{i}",
+        )
+    elif i == 3:
+        radio = col4.radio(
+            f"{row['scenarios']}",
+            [1, 2, 3, 4, 5],
+            key=f"{st.session_state['user']}-{i}",
+        )
+    elif i == 4:
+        radio = col5.radio(
+            f"{row['scenarios']}",
+            [1, 2, 3, 4, 5],
+            key=f"{st.session_state['user']}-{i}",
+        )
+    rankings.append(radio)
 save_rankings_to_file(rankings, st.session_state["user"])
 
-# Display the newest rankings from the user before submission
+# Show the updated rankings table for the current user
 user_rankings = get_user_rankings(st.session_state["user"])
 st.write("\n\n\n")
 st.write("Newest rankings:")
