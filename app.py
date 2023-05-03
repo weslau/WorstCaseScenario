@@ -81,18 +81,44 @@ if "user" not in st.session_state or st.session_state["user"] == "":
 # Read rows from a text file and store them in a Pandas DataFrame
 data = read_rows_from_file("rows.txt")
 
-# Randomly select 5 options to display
-options_to_display = random.sample(data["scenarios"].tolist(), 5)
+
+def get_random_options():
+    st.session_state["options_to_display"] = random.sample(
+        data["scenarios"].tolist(), 5
+    )
+
+
+if "round" not in st.session_state:
+    st.session_state["round"] = 0
+
+if "options_to_display" not in st.session_state or (
+    st.session_state["new_round"] and st.button("Next Round")
+):
+    # Randomly select 5 options to display
+    get_random_options()
+    st.session_state["new_round"] = False
+
+if st.button("Next Round"):
+    st.session_state["round"] += 1
+    get_random_options()
+
+options_to_display = st.session_state["options_to_display"]
 data_to_display = data[data["scenarios"].isin(options_to_display)]
 
 # Display the options and radio buttons for the current user
-st.write(f"{st.session_state['user']}'s rankings:")
+st.write(
+    f"{st.session_state['user']}'s rankings for round {st.session_state['round']}:"
+)
 col1, col2, col3, col4, col5 = st.columns(5)
 rankings = []
 cols = [col1, col2, col3, col4, col5]
 for i, row in data_to_display.reset_index(drop=True).iterrows():
     radio = cols[i].radio(
-        f"{row['scenarios']}", [1, 2, 3, 4, 5], key=f"{st.session_state['user']}-{i}"
+        f"{row['scenarios']}",
+        [1, 2, 3, 4, 5],
+        ## create a unique key to keep radio ranking button save state consistent
+        # currently on a per user, per column (1-5), and per round basis. perhaps change it to include the GAME index later?
+        key=f"{st.session_state['user']}-{i}-{st.session_state['round']}",
     )
     rankings.append(radio)
 
