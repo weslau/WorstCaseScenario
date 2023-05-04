@@ -5,6 +5,12 @@ import uuid
 import hashlib
 
 
+# @st.cache_data
+def display_user_rankings(player_id):
+    user_rankings = get_user_rankings(player_id, data_to_display=data_to_display)
+    return user_rankings
+
+
 def read_rows_from_file(file_path):
     with open(file_path, "r") as f:
         rows = f.readlines()
@@ -12,11 +18,11 @@ def read_rows_from_file(file_path):
         rows = [row.strip() for row in rows]
 
     # Create a DataFrame with the rows and an initial ranking of 0 for each row
-    data = pd.DataFrame(
+    data_scenarios = pd.DataFrame(
         {"scenarios": rows, "ranking": [0] * len(rows)},
         columns=["scenarios", "ranking"],
     )
-    return data
+    return data_scenarios
 
 
 def get_user_rankings(player_id, data_to_display):
@@ -28,16 +34,25 @@ def get_user_rankings(player_id, data_to_display):
 
     # Filter the DataFrame to only show the rankings for the current user
     user_rankings = df[df["player_id"] == player_id]
+    print(user_rankings)
 
-    # Only return the columns that need to be displayed, the rows must correspond to the scenarios that were sampled in data_to_display
-    user_rankings = user_rankings.loc[
-        user_rankings["scenarios"].isin(data_to_display), ["scenarios", "ranking"]
-    ]
+    # # Only return the columns that need to be displayed, the rows must correspond to the scenarios that were sampled in data_to_display
+    # user_rankings = user_rankings.loc[
+    #     user_rankings["scenarios"].isin(data_to_display["scenarios"]),
+    #     ["scenarios", "ranking"],
+    # ]
+    # user_rankings["scenarios"] = user_rankings["scenarios"].astype(str)
+    # data_to_display["scenarios"] = data_to_display["scenarios"].astype(str)
+
+    # # Merge user_rankings with data_to_display based on the scenarios column to ensure correct order and only display relevant columns
+    # user_rankings = data_to_display[["scenarios"]].merge(
+    #     user_rankings, on="scenarios", how="left"
+    # )
 
     return user_rankings
 
 
-def save_rankings_to_file(rankings, player_id):
+def save_rankings_to_file(rankings, player_id, data_to_display):
     # Load the current rankings from the CSV file
     try:
         df = pd.read_csv("rankings.csv")
@@ -49,7 +64,7 @@ def save_rankings_to_file(rankings, player_id):
         df = df.append(
             {
                 "player_id": player_id,
-                "scenarios": data.iloc[i]["scenarios"],
+                "scenarios": data_to_display[i],
                 "ranking": ranking,
             },
             ignore_index=True,
@@ -79,12 +94,12 @@ if "user" not in st.session_state or st.session_state["user"] == "":
 
 
 # Read rows from a text file and store them in a Pandas DataFrame
-data = read_rows_from_file("rows.txt")
+data_scenarios = read_rows_from_file("rows.txt")
 
 
 def get_random_options():
     st.session_state["options_to_display"] = random.sample(
-        data["scenarios"].tolist(), 5
+        data_scenarios["scenarios"].tolist(), 5
     )
 
 
@@ -103,7 +118,13 @@ if st.button("Next Round"):
     get_random_options()
 
 options_to_display = st.session_state["options_to_display"]
-data_to_display = data[data["scenarios"].isin(options_to_display)]
+##data_to_display is a dataframe, subset of matching rows from data. data is 2 col dataframe with scenarios and rankings (is rankings needed?)
+# Create a DataFrame with the rows and an initial ranking of 0 for each row
+data_to_display = pd.DataFrame(
+    {"scenarios": options_to_display, "ranking": [0] * len(options_to_display)},
+    columns=["scenarios", "ranking"],
+)
+# data_to_display = data_scenarios[data_scenarios["scenarios"].isin(options_to_display)]
 
 # Display the options and radio buttons for the current user
 st.write(
@@ -112,6 +133,19 @@ st.write(
 col1, col2, col3, col4, col5 = st.columns(5)
 rankings = []
 cols = [col1, col2, col3, col4, col5]
+# for i, row in data_to_display.reset_index(drop=True).iterrows():
+#     radio = cols[i].radio(
+#         f"{row['scenarios']}",
+#         [1, 2, 3, 4, 5],
+#         ## create a unique key to keep radio ranking button save state consistent
+#         # currently on a per user, per column (1-5), and per round basis. perhaps change it to include the GAME index later?
+#         key=f"{st.session_state['user']}-{i}-{st.session_state['round']}",
+#     )
+#     rankings.append(radio)
+
+# Define the "current_rankings" DataFrame
+current_rankings = pd.DataFrame(columns=["scenarios", "ranking"])
+
 for i, row in data_to_display.reset_index(drop=True).iterrows():
     radio = cols[i].radio(
         f"{row['scenarios']}",
@@ -120,9 +154,14 @@ for i, row in data_to_display.reset_index(drop=True).iterrows():
         # currently on a per user, per column (1-5), and per round basis. perhaps change it to include the GAME index later?
         key=f"{st.session_state['user']}-{i}-{st.session_state['round']}",
     )
+
+    # Update the current_rankings DataFrame
+    data_to_display.loc[
+        data_to_display["scenarios"] == row["scenarios"], "ranking"
+    ] = radio
     rankings.append(radio)
 
-##find first instance of player_id associated iwth username matching user entered string
+##find first instance of player_id associated with username matching user entered string
 if "players" in st.session_state and not st.session_state["players"].empty:
     player_id = (
         st.session_state["players"]
@@ -132,10 +171,13 @@ if "players" in st.session_state and not st.session_state["players"].empty:
         ]
         .iloc[0]
     )
-    save_rankings_to_file(rankings, player_id)
+    save_rankings_to_file(rankings, player_id, st.session_state["options_to_display"])
 
-    # Show the updated rankings table for the current user
-    user_rankings = get_user_rankings(player_id, data_to_display=data_to_display)
+    # Show the rankings table for the current user, current round
+    user_rankings = get_user_rankings(player_id, data_to_display=data_to_display).tail(
+        5
+    )
+
     st.write("\n\n\n")
     st.write("Newest rankings:")
-    st.write(user_rankings)
+    st.write(user_rankings.drop("player_id", axis=1))
