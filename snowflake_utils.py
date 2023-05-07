@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def create_snowflake_connection():
+def create_connection():
 
     conn = snowflake.connector.connect(
         account=os.environ["SNOWFLAKE_ACCOUNT_NAME"],
@@ -17,9 +17,9 @@ def create_snowflake_connection():
     return conn
 
 
-def query_snowflake(query):
+def query(query):
 
-    conn = create_snowflake_connection()
+    conn = create_connection()
     
     try:
         cursor = conn.cursor()
@@ -32,9 +32,9 @@ def query_snowflake(query):
         conn.close()
 
 
-def push_to_snowflake(table_name:str, columns:list, values:list):
+def push(table_name:str, columns:list, values:list):
 
-    conn = create_snowflake_connection()
+    conn = create_connection()
 
     try:
         cursor = conn.cursor()
