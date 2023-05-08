@@ -1,5 +1,5 @@
 import snowflake.connector
-import os
+import os, pandas as pd
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -28,7 +28,8 @@ def pull(query):
         cursor = conn.cursor()
         cursor.execute(query)
         result = cursor.fetchall()
-        return result
+        colnames = [x[0] for x in cursor.description]
+        return pd.DataFrame(result, columns=colnames)
     
     finally:
         cursor.close()
