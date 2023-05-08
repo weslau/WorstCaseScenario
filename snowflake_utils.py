@@ -4,6 +4,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+DB_NAME = "DEV_WORSTCASESCENARIO_DB" 
+SCHEMA_NAME = "WCS_DB_SCHEMA1"
+
 def create_connection():
 
     conn = snowflake.connector.connect(
@@ -17,7 +20,7 @@ def create_connection():
     return conn
 
 
-def query(query):
+def pull(query):
 
     conn = create_connection()
     
@@ -39,9 +42,10 @@ def push(table_name:str, columns:list, values:list):
     try:
         cursor = conn.cursor()
 
+        full_table_name = f"{DB_NAME}.{SCHEMA_NAME}.{table_name}"
         columns_str = ', '.join(columns)
         values_str = ', '.join(['%s']*len(values))
-        query = f"INSERT INTO {table_name} ({columns_str}) VALUES ({values_str})"
+        query = f"INSERT INTO {full_table_name} ({columns_str}) VALUES ({values_str})"
 
         cursor.execute(query, values)
         conn.commit()
