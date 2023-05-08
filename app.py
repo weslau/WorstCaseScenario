@@ -66,6 +66,8 @@ def save_rankings_to_file(rankings, player_id, data_to_display):
                 "player_id": player_id,
                 "scenarios": data_to_display[i],
                 "ranking": ranking,
+                "round": st.session_state["round"],
+                "game_id": None,
             },
             ignore_index=True,
         )
@@ -114,6 +116,7 @@ if "options_to_display" not in st.session_state or (
     st.session_state["new_round"] = False
 
 if st.button("Next Round"):
+    # TODO: Implement error checking logic. If not all users in this round of this game have submitted rankings, don't advance round if pressed
     st.session_state["round"] += 1
     get_random_options()
 
@@ -133,17 +136,6 @@ st.write(
 col1, col2, col3, col4, col5 = st.columns(5)
 rankings = []
 cols = [col1, col2, col3, col4, col5]
-# for i, row in data_to_display.reset_index(drop=True).iterrows():
-#     radio = cols[i].radio(
-#         f"{row['scenarios']}",
-#         [1, 2, 3, 4, 5],
-#         ## create a unique key to keep radio ranking button save state consistent
-#         # currently on a per user, per column (1-5), and per round basis. perhaps change it to include the GAME index later?
-#         key=f"{st.session_state['user']}-{i}-{st.session_state['round']}",
-#     )
-#     rankings.append(radio)
-
-# Define the "current_rankings" DataFrame
 current_rankings = pd.DataFrame(columns=["scenarios", "ranking"])
 
 for i, row in data_to_display.reset_index(drop=True).iterrows():
@@ -181,3 +173,8 @@ if "players" in st.session_state and not st.session_state["players"].empty:
     st.write("\n\n\n")
     st.write("Newest rankings:")
     st.write(user_rankings.drop("player_id", axis=1))
+
+# Generate "Submit" button to send user rankings to Snowflake DB
+if st.button("Submit"):
+    # TODO: Implement sending user rankings to Snowflake DB
+    st.write("User rankings submitted to Snowflake DB.")
