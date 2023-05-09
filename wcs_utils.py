@@ -18,7 +18,7 @@ PSEUDONYM_NOUNS = [
 ]
 
 def assign_blame():
-    whos_at_fault = random.choice(["Mike", "Wesley", "Mark D"])
+    whos_at_fault = random.choice(["Mike", "Wesley", "Matthew", "Mark D"])
     st.error(f"Something went wrong. Blame {whos_at_fault}.")
 
 def generate_game_code():
