@@ -95,7 +95,20 @@ def existing_account_page():
             else:
                 st.error("Username not found. How embarrassing for you.")
 
-    new_account_button = st.button("Create new account")
+    back_widget(to="login")
+
+
+def login_page():
+    header()
+
+    st.session_state.current_page = "login"
+    existing_account_button = st.button("Existing account")
+    
+    if existing_account_button:
+        st.session_state.current_page = "login existing account"
+        st.experimental_rerun()
+    
+    new_account_button = st.button("New account")
     st.write("\n")
 
     if new_account_button:
@@ -122,11 +135,10 @@ def welcome_page():
 
     create_game_button = st.button("Create Game")
     st.write("\n")
-    entered_game_code = st.text_input("Enter 6-digit game code")
+    entered_game_code = str.upper(st.text_input("Enter 6-digit game code"))
     join_game_button = st.button("Join Game")
 
     if create_game_button:
-
         new_game_code = wcs.generate_game_code()
         st.session_state.game_code = new_game_code
         table_columns = ["GAME_ID", "GAME_CODE", "GAME_TIME_START", "IS_ACTIVE"]
@@ -142,23 +154,48 @@ def welcome_page():
         where IS_ACTIVE = TRUE
         """
 
-        result = snow.pull(query)
-        print(entered_game_code)
-        print(type(entered_game_code))
-        print(entered_game_code in result.GAME_CODE.tolist())
+        df_games = snow.pull(query)
+        is_active_game = entered_game_code in df_games.GAME_CODE.tolist()
+
+        if is_active_game:
+            st.session_state.current_page = "lobby"
+            st.session_state.game_code = entered_game_code
+            st.experimental_rerun()
+
+        else:
+            st.error("Not an active game code.")
 
     back_widget(to="login")
 
 
+def join_lobby(df_lobby):
+    game_code, player_name = st.session_state.game_code, st.session_state.player_name
 
+    if (game_code, player_name) in df_lobby[["GAME_CODE", "PLAYER_NAME"]].values:
+        pass
+
+    else:
+        colnames = ["game_code", "player_name", "joined_at"]
+        values = [game_code, player_name, dt.datetime.now()]
+        snow.push("lobby_info", colnames, values)
 
 def lobby_page():
     header()
 
     st.write(f"### code: {st.session_state.game_code}")
     
-        
-    ## show lobby page; how many players have joined and whom
+    query = f"""
+    select * from {DB_NAME}.{SCHEMA_NAME}.lobby_info
+    where game_code = '{st.session_state.game_code}'
+    order by joined_at
+    """
+    df_lobby = snow.pull(query)
+
+    join_lobby(df_lobby)
+    
+    for name in df_lobby.PLAYER_NAME:
+        st.write(name)
+
     back_widget()
 
 
@@ -167,6 +204,7 @@ if __name__ == "__main__":
     page_dict = {
         "login": login_page,
         "create account": create_account_page,
+        "login existing account": existing_account_page,
         "welcome": welcome_page,
         "lobby": lobby_page
     }
@@ -176,8 +214,3 @@ if __name__ == "__main__":
     
     else:
         page_dict[st.session_state.current_page]()
-
-    # if "current_page" not in st.session_state or st.session_state.current_page == "welcome":
-    #     welcome_page()
-    # elif st.session_state.current_page == "lobby":
-    #     lobby_page()
