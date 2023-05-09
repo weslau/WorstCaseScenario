@@ -42,32 +42,34 @@ def create_account_page():
             if is_user_already:
                 st.error(f"`{new_username}` is already an existing username, doofus.")
             else:
+                split = new_username.split(" ")
                 if len(new_username) < 3:
                     st.error("Username must be at least 3 characters.")
-                if len(set(string.punctuation) - set(new_username)) != len(string.punctuation):
+                elif len(set(string.punctuation) - set(new_username)) != len(string.punctuation):
                     st.error("No punctuation in usernames, por favor.")
-                if (new_username.split(" ")[0] in wcs.PSEUDONYM_ADJECTIVES) & (new_username.split(" ")[1] in wcs.PSEUDONYM_NOUNS):
-                    st.error("Name reserved for guests. Pretty rude of you to even try")
+                elif len(split) > 1:
+                    if (split[0] in wcs.PSEUDONYM_ADJECTIVES) & (split[1] in wcs.PSEUDONYM_NOUNS):
+                        st.error("Name reserved for guests.")
 
-                try:
-                    columns = ["PLAYER_ID", "PLAYER_NAME", "PLAYER_NGAMES"]
-                    values = [str(uuid.uuid4()), new_username, 0]
-                    snow.push("PLAYER_INFO", columns, values)
+                else:
 
-                    st.success("Success!")
-                    st.session_state.player_name = new_username
-                    st.session_state.current_page = "welcome"
-                
-                except:
-                    wcs.assign_blame()
+                    try:
+                        columns = ["PLAYER_ID", "PLAYER_NAME", "PLAYER_NGAMES"]
+                        values = [str(uuid.uuid4()), new_username, 0]
+                        snow.push("PLAYER_INFO", columns, values)
 
-    back_widget()
+                        st.success("Success!")
+                        st.session_state.player_name = new_username
+                        st.session_state.current_page = "welcome"
+                    
+                    except:
+                        wcs.assign_blame()
+
+    back_widget(to="login")
 
 
-def login_page():
-    header()
+def existing_account_page():
 
-    st.session_state.current_page = "login"
     with st.form("username_login"):
         existing_username = st.text_input("Username:")
 
