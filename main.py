@@ -14,11 +14,55 @@ def header():
     st.write("### Worst Case Scenario")
     st.write("\n\n\n")
 
+def logged_in_as():
+    st.write(f"Logged in as: {st.session_state.player_name}")
+
 def back_widget(to:str="welcome"):
     back_button = st.button("Back")
     if back_button:
         st.session_state.current_page = to
         st.experimental_rerun()
+
+def create_account_page():
+    header()
+
+    with st.form("New Account"):
+        new_username = st.text_input("New username:")
+
+        new_username_button = st.form_submit_button("Submit and login")
+
+        if new_username_button:
+            query = f"""
+            select PLAYER_ID, PLAYER_NAME from {DB_NAME}.{SCHEMA_NAME}.PLAYER_INFO
+            """
+
+            df_players = snow.pull(query)
+            is_user_already = new_username in df_players.PLAYER_NAME.tolist()
+
+            if is_user_already:
+                st.error(f"`{new_username}` is already an existing username, doofus.")
+            else:
+                if len(new_username) < 3:
+                    st.error("Username must be at least 3 characters.")
+                if len(set(string.punctuation) - set(new_username)) != len(string.punctuation):
+                    st.error("No punctuation in usernames, por favor.")
+                if (new_username.split(" ")[0] in wcs.PSEUDONYM_ADJECTIVES) & (new_username.split(" ")[1] in wcs.PSEUDONYM_NOUNS):
+                    st.error("Name reserved for guests. Pretty rude of you to even try")
+
+                try:
+                    columns = ["PLAYER_ID", "PLAYER_NAME", "PLAYER_NGAMES"]
+                    values = [str(uuid.uuid4()), new_username, 0]
+                    snow.push("PLAYER_INFO", columns, values)
+
+                    st.success("Success!")
+                    st.session_state.player_name = new_username
+                    st.session_state.current_page = "welcome"
+                
+                except:
+                    wcs.assign_blame()
+
+    back_widget()
+
 
 def login_page():
     header()
@@ -39,11 +83,12 @@ def login_page():
 
             if is_user:
                 st.session_state.player_id, st.session_state.player_name = (
-                    df_players[df_players.player_name == existing_username]
-                    .values.tolist()
+                    df_players[df_players.PLAYER_NAME == existing_username]
+                    .values.tolist()[0]
                 )
                 st.success("Success! Sick!")
                 st.session_state.current_page = "welcome"
+                st.experimental_rerun()
             
             else:
                 st.error("Username not found. How embarrassing for you.")
@@ -52,45 +97,24 @@ def login_page():
     st.write("\n")
 
     if new_account_button:
-        with st.form("New Account"):
-            new_username = st.text_input("New username:")
-
-            new_username_button = st.form_submit_button("Submit and login")
-
-            if new_username_button:
-                query = f"""
-                select PLAYER_ID, PLAYER_NAME from {DB_NAME}.{SCHEMA_NAME}.PLAYER_INFO
-                """
-
-                df_players = snow.pull(query)
-                is_user_already = new_username in df_players.PLAYER_NAME.tolist()
-
-                if is_user_already:
-                    st.error(f"`{new_username}` is already an existing username, doofus.")
-                else:
-                    if len(new_username) < 3:
-                        st.error("Username must be at least 3 characters.")
-                    if len(set(string.punctuation) - set(new_username)) != len(string.punctuation):
-                        st.error("No punctuation in usernames, por favor.")
-
-                    try:
-                        columns = ["PLAYER_ID", "PLAYER_NAME", "PLAYER_NGAMES"]
-                        values = [str(uuid.uuid4()), new_username, 0]
-                        snow.push("PLAYER_INFO", columns, values)
-
-                        st.success("Success!")
-                        st.session_state.current_page = "welcome"
-                    
-                    except:
-                        wcs.assign_blame()
-                    
-
+        st.session_state.current_page = "create account"
+        st.experimental_rerun()
 
     st.write("\n")
     guest_login_button = st.button("Continue as guest")
 
+    if guest_login_button:
+        pseudonym = wcs.generate_pseudonym()
+        st.success(f"Logging in as `{pseudonym}`!")
+
+        st.session_state.player_name = pseudonym
+        st.session_state.current_page = "welcome"
+        st.experimental_rerun()
+
+
 def welcome_page():
     header()
+    logged_in_as()
 
     st.session_state.current_page = "welcome"
 
@@ -121,6 +145,8 @@ def welcome_page():
         print(type(entered_game_code))
         print(entered_game_code in result.GAME_CODE.tolist())
 
+    back_widget(to="login")
+
 
 
 
@@ -138,6 +164,7 @@ if __name__ == "__main__":
 
     page_dict = {
         "login": login_page,
+        "create account": create_account_page,
         "welcome": welcome_page,
         "lobby": lobby_page
     }
