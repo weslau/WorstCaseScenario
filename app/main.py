@@ -58,11 +58,18 @@ def welcome_page():
     wcs.back_widget(to="login")
 
 
-
+# this is where game instructions should be included
 def game_start_page():
     wcs.header()
+    # link to a page (function) called play_round_page() that implements the functionality of app.py
 
     wcs.back_widget(to="lobby")
+    
+def play_round_page():
+    # TEMPORARY BEFORE DB SETUP:Read rows from a text file and store them in a Pandas DataFrame
+    data_scenarios = gameplay.read_rows_from_file("rows.txt")
+    
+
 
 
 if __name__ == "__main__":
@@ -73,7 +80,8 @@ if __name__ == "__main__":
         "login existing account": existing_account_page,
         "welcome": welcome_page,
         "lobby": lobby_page,
-        "game start": game_start_page
+        "game start": game_start_page,
+        "play round": play_round_page,
     }
 
     st.session_state.in_lobby = False
