@@ -3,15 +3,15 @@ import streamlit as st
 
 PSEUDONYM_ADJECTIVES = [
     "anachronistic", "boisterous", "cadaverous", "capricious", "convivial",
-    "ebullient", "enigmatic", "ephemeral", "esoteric",
+    "ebullient", "enigmatic", "moody", "esoteric",
     "euphoric", "fastidious", "gregarious", "ineffable",
-    "mellifluous", "mercurial", "nefarious", "obsequious",
+    "mellifluous", "mercurial", "nefarious", "inconceivable",
     "serendipitous", "surreptitious", "taciturn"
 ]
 
 PSEUDONYM_NOUNS = [
     "antenna", "azimuth", "bayesian", "convolution",
-    "downlink", "eigenvector", "entropy", "geostationary",
+    "downlink", "eigenvector", "entropy", "payload",
     "classifier", "radiation", "kurtosis", "cluster",
     "manifold", "orthogonality", "diplexer", "quadrature",
     "polarization", "tensor", "waveguide", "orbit", "GPT"
