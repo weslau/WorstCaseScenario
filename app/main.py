@@ -8,6 +8,7 @@ from lobby import lobby_page
 
 import utils.snowflake as snow
 import utils.wcs as wcs
+import app as gameplay
 
 DB_NAME = wcs.DB_NAME
 SCHEMA_NAME = wcs.SCHEMA_NAME
