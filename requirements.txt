@@ -1,0 +1,5 @@
+pandas==2.0.1
+pandas_stubs==1.2.0.35
+python-dotenv==1.0.0
+snowflake_connector_python==3.0.3
+streamlit==1.22.0
