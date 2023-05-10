@@ -1,6 +1,9 @@
 import random, string
 import streamlit as st
 
+DB_NAME = "DEV_WORSTCASESCENARIO_DB" 
+SCHEMA_NAME = "WCS_DB_SCHEMA1"
+
 PSEUDONYM_ADJECTIVES = [
     "anachronistic", "boisterous", "cadaverous", "capricious", "convivial",
     "ebullient", "enigmatic", "moody", "esoteric",
@@ -16,6 +19,18 @@ PSEUDONYM_NOUNS = [
     "manifold", "orthogonality", "diplexer", "quadrature",
     "polarization", "tensor", "waveguide", "orbit", "GPT"
 ]
+
+def header():
+    st.write("### Worst Case Scenario")
+    st.write("\n\n\n")
+
+def back_widget(to:str="welcome"):
+    for _ in range(5):
+        st.write("\n")
+    back_button = st.button("back")
+    if back_button:
+        st.session_state.current_page = to
+        st.experimental_rerun()
 
 def assign_blame():
     whos_at_fault = random.choice(["Mike", "Wesley", "Matthew", "Mark D"])
