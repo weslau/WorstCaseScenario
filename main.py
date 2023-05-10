@@ -18,10 +18,26 @@ def logged_in_as():
     st.write(f"Logged in as: {st.session_state.player_name}")
 
 def back_widget(to:str="welcome"):
-    back_button = st.button("Back")
+    for _ in range(5):
+        st.write("\n")
+    back_button = st.button("back")
     if back_button:
         st.session_state.current_page = to
         st.experimental_rerun()
+
+def create_account(new_username):
+    try:
+        columns = ["PLAYER_ID", "PLAYER_NAME", "PLAYER_NGAMES"]
+        values = [str(uuid.uuid4()), new_username, 0]
+        snow.push("PLAYER_INFO", columns, values)
+
+        st.success("Success!")
+        st.session_state.player_name = new_username
+        st.session_state.current_page = "welcome"
+        st.experimental_rerun()
+    
+    except:
+        wcs.assign_blame()
 
 def create_account_page():
     header()
@@ -43,27 +59,20 @@ def create_account_page():
                 st.error(f"`{new_username}` is already an existing username, doofus.")
             else:
                 split = new_username.split(" ")
+                
+
                 if len(new_username) < 3:
                     st.error("Username must be at least 3 characters.")
                 elif len(set(string.punctuation) - set(new_username)) != len(string.punctuation):
                     st.error("No punctuation in usernames, por favor.")
                 elif len(split) > 1:
-                    if (split[0] in wcs.PSEUDONYM_ADJECTIVES) & (split[1] in wcs.PSEUDONYM_NOUNS):
+                    if (split[0] in wcs.PSEUDONYM_ADJECTIVES) and (split[1] in wcs.PSEUDONYM_NOUNS):
                         st.error("Name reserved for guests.")
+                    else:
+                        create_account(new_username)
 
                 else:
-
-                    try:
-                        columns = ["PLAYER_ID", "PLAYER_NAME", "PLAYER_NGAMES"]
-                        values = [str(uuid.uuid4()), new_username, 0]
-                        snow.push("PLAYER_INFO", columns, values)
-
-                        st.success("Success!")
-                        st.session_state.player_name = new_username
-                        st.session_state.current_page = "welcome"
-                    
-                    except:
-                        wcs.assign_blame()
+                    create_account(new_username)
 
     back_widget(to="login")
 
@@ -148,7 +157,7 @@ def welcome_page():
         st.session_state.current_page = "lobby"
         st.experimental_rerun()
 
-    if join_game_button:
+    if join_game_button or entered_game_code:
         query = f"""
         select * from {DB_NAME}.{SCHEMA_NAME}.GAMES
         where IS_ACTIVE = TRUE
@@ -171,7 +180,7 @@ def welcome_page():
 def join_lobby(df_lobby):
     game_code, player_name = st.session_state.game_code, st.session_state.player_name
 
-    if (game_code, player_name) in df_lobby[["GAME_CODE", "PLAYER_NAME"]].values:
+    if [game_code, player_name] in df_lobby[["GAME_CODE", "PLAYER_NAME"]].values.tolist():
         pass
 
     else:
@@ -179,11 +188,12 @@ def join_lobby(df_lobby):
         values = [game_code, player_name, dt.datetime.now()]
         snow.push("lobby_info", colnames, values)
 
+    st.session_state.in_lobby = True
+
+
 def lobby_page():
     header()
 
-    st.write(f"### code: {st.session_state.game_code}")
-    
     query = f"""
     select * from {DB_NAME}.{SCHEMA_NAME}.lobby_info
     where game_code = '{st.session_state.game_code}'
@@ -191,12 +201,45 @@ def lobby_page():
     """
     df_lobby = snow.pull(query)
 
+    n_players = df_lobby.shape[0]
+
+    c1, c2 = st.columns(2)
+    with c1:
+        st.write(f"### code: {st.session_state.game_code}")
+    with c2:
+        st.write(f"### {n_players} / 10")
+
     join_lobby(df_lobby)
     
     for name in df_lobby.PLAYER_NAME:
+        # st.write(f"{name} \u2713")
         st.write(name)
 
+    ## start game widget
+    start_game_button = st.button("start game")
+
+    if start_game_button:
+        if n_players < 3:
+            st.error("Not enough players")
+            
+            ### HACK
+            if st.session_state.player_name == "dev":
+                st.session_state.current_page = "game start"
+                st.experimental_rerun()
+            ###
+        
+        else:
+            st.session_state.current_page = "game start"
+            st.experimental_rerun()
+
+
     back_widget()
+
+
+def game_start_page():
+    header()
+
+    back_widget(to="lobby")
 
 
 if __name__ == "__main__":
@@ -206,8 +249,11 @@ if __name__ == "__main__":
         "create account": create_account_page,
         "login existing account": existing_account_page,
         "welcome": welcome_page,
-        "lobby": lobby_page
+        "lobby": lobby_page,
+        "game start": game_start_page
     }
+
+    st.session_state.in_lobby = False
 
     if "current_page" not in st.session_state:
         login_page()
