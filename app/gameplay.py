@@ -36,12 +36,12 @@ def read_rows_from_file(file_path):
     return data_scenarios
 
 
-def get_user_rankings(player_id, data_to_display):
-    # Load the current rankings from the CSV file
+def get_user_rankings(player_id):
+    # Load the current rankings from the CSV file (TODO: transition to DB table "RANKINGS")
     try:
         df = pd.read_csv("rankings.csv")
     except:
-        df = pd.DataFrame(columns=["player_id", "scenarios", "ranking"])
+        df = pd.DataFrame(columns=["player_id", "scenarios", "ranking", "game_id", "round"])
 
     # Filter the DataFrame to only show the rankings for the current user
     user_rankings = df[df["player_id"] == player_id]
@@ -58,16 +58,7 @@ def save_rankings_to_file(rankings, player_id, data_to_display, round_id, game_i
         df = pd.DataFrame(columns=["player_id", "scenarios", "ranking", "game_id", "round"])
 
     # # Add the new rankings to the DataFrame
-    # for i, ranking in enumerate(rankings):
-    #     new_row = {
-    #         "player_id": player_id,
-    #         "scenarios": data_to_display[i],
-    #         "ranking": ranking,
-    #         "round": st.session_state["round"],
-    #         "game_id": None,
-    #     }
-    #     df = df.append(new_row, ignore_index=True)
-    # Create a list of dictionaries representing new rows to be added to the DataFrame
+    # rankings and data_to_display are both dataframes with the same index, so rankings[i] will be ranking for scenario in data_to_display[i]
     new_rows = []
     for ranking, scenario in zip(rankings, data_to_display):
         new_rows.append({
@@ -85,10 +76,6 @@ def save_rankings_to_file(rankings, player_id, data_to_display, round_id, game_i
     df.to_csv("rankings.csv", index=False)
 
 
-def get_random_options():
-    st.session_state["options_to_display"] = random.sample(
-        data_scenarios["scenarios"].tolist(), 5
-    )
 
 
 def print_game_rules():

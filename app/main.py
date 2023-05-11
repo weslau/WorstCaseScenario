@@ -86,7 +86,7 @@ def play_round_page():
 
     if "round" not in st.session_state:
         st.session_state["round"] = 0
-        
+    # TODO: simplify this logic, does new_round need to be a variable?
     if "options_to_display" not in st.session_state or (
         st.session_state["new_round"] and st.button("Next Round")
     ):
@@ -147,9 +147,7 @@ def play_round_page():
         st.write("User rankings submitted to DB.")
     
         # Show the rankings table for the current user, current round
-        user_rankings = gameplay.get_user_rankings(curr_player_id, data_to_display=data_to_display).tail(
-            5
-        )
+        user_rankings = gameplay.get_user_rankings(curr_player_id).tail(5)
 
         st.write("\n\n\n")
         st.write("Newest rankings:")
