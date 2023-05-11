@@ -2,6 +2,7 @@ import streamlit as st, datetime as dt
 
 import utils.snowflake as snow
 from utils.wcs import DB_NAME, SCHEMA_NAME, header, back_widget
+import gameplay as gameplay
 
 def join_lobby(df_lobby):
     game_code, player_name = st.session_state.game_code, st.session_state.player_name
@@ -43,7 +44,7 @@ def lobby_page():
         st.write(name)
 
     ## start game widget
-    start_game_button = st.button("start game")
+    start_game_button = st.button("Ready to Play")
 
     if start_game_button:
         if n_players < 3:
@@ -56,8 +57,9 @@ def lobby_page():
             ###
         
         else:
-            st.session_state.current_page = "game start"
+            st.session_state.current_page = "play round"
             st.experimental_rerun()
-
+    
+    gameplay.print_game_rules()
 
     back_widget()

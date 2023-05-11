@@ -1,6 +1,29 @@
 # WorstCaseScenario
 
-TODO: go through tasks list, assign a * wherever ticket seems to involve higher level archetecture diagram, and then sort tickets into buckets related to teh diagram. 
+## Flow diagram the different pages of webapp
+
+```mermaid
+flowchart TD;
+
+A[login] -->|clicks new account button| B[create account page]
+A -->|clicks existing account button| C[existing account page]
+A --> D(welcome)
+B -->|creates account| D
+B -->|clicks back button| A
+C -->|logs in with existing account| D
+C -->|clicks back button| A
+F -->|Start Game| G(play_round_page)
+F -->|goes back to game start| E
+E -->|goes back to welcome| D
+A -->|Continue as Guest| D(welcome)
+D -->|Join Game| E(lobby)
+D -->|Create Game| E(lobby)
+E -->|Ready to Play| F(game_start_page)
+G -->|Next Round| G
+G -->|Submit| G
+%% eventually we will want a way to finish the game
+%% G -->|Finish game| F
+```
 
 tasks:
 - getting a snowflake version of database to connect
