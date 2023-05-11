@@ -63,11 +63,11 @@ def welcome_page():
 # this is where game instructions should be included
 def game_start_page():
     wcs.header()
-    # add game docs here:
     
     # link to a page (function) called play_round_page() that implements the functionality of app.py
     start_game_button = st.button("Start Game")
     st.write("\n")
+    # print game docs here:
     gameplay.print_game_rules()
 
     if start_game_button:
@@ -162,8 +162,8 @@ if __name__ == "__main__":
         "create account": create_account_page,
         "login existing account": existing_account_page,
         "welcome": welcome_page,
-        "lobby": lobby_page, ## can we combine lobby page and game_start_page together?
-        "game start": game_start_page, ##this is the landing page for a game, it explains rules
+        "lobby": lobby_page, ## page lists players in game and explains rules. combined game_start_page into lobby page
+        "game start": game_start_page, ##unused
         "play round": play_round_page, ##this is the UI showing scenarios and UI for rankings
     }
 

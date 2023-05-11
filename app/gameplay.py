@@ -82,20 +82,19 @@ def print_game_rules():
     st.markdown('''
     ## HOW TO PLAY
 
-    1. SPIN AWAY! Player One, “The Victim,” starts the game by spinning The Victim Wheel and reading aloud the space they land on.
+    1. Player One starts the game as "The Victim", and each player takes turns to go first in subsequent rounds of the game.
 
-    2. FLIP ‘EM OVER! The Victim then turns over and reads aloud, one by one, the next five worst-case scenario cards...to create a row of five cards in the middle of the play area.
+    2. READ THE SCENARIOS! The Victim then reads aloud, one by one, the five worst-case scenario presented after pressing the "Start Game" button
 
-    3. RANK ‘EM! What scenario is bad, very bad, awful, horrible, or the worst...according to The Victim? Every player, including The Victim, decides how The Victim will rank the five cards from 1-5, by secretly placing their chips facedown next to each card (as shown below).
+    3. RANK ‘EM! What scenario is bad, very bad, awful, horrible, or the worst...according to The Victim? Every player, including The Victim, decides how The Victim will rank the five cards from 1-5, selecting a ranking option under each scenario in the webapp (see below notes).
 
-    - When there are 5-6 players, chips can be placed on either end of the card, so long as players remember their chip color.
-    - Table talk is encouraged, but players should be discreet when placing their chips facedown, so nobody knows how other players rank the five cards.
+    - Table talk is encouraged, but players should be discreet about their selection, so nobody knows how other players rank the five cards.
 
-    4. REVEAL ‘EM! After all players have made their selections, The Victim reads aloud the first card on their left and turns over the other players’ corresponding chips. The Victim then reveals the numbered chip they assigned to that card. Players who match The Victim’s number should rejoice. Turn non-matching chips over to the “X” side. Players repeat this step for the remaining four cards/chips until selections are revealed for all five cards.)
+    4. REVEAL ‘EM! After all players have made their selections, The Victim reads aloud their ranking and reveals the other players' rankings of the scenarios. Players who match The Victim's number should rejoice.
 
-    5. SCORING TIME! Unless The Victim lands on SCORE YOUR CHIPS! (see The Victim Wheel page), players get one point for every chip that matched one of The Victim’s chips PLUS any bonus points awarded on The Victim Wheel. The Victim gets the same number of points as the player(s) with the most points (including any bonus). Remember, we said the scorekeeper needs to be responsible!
+    5. SCORING TIME! Players get one point for every chip that matched one of The Victim's chips. The Victim gets the same number of points as the player(s) with the most points (including any bonus). Remember, we said the scorekeeper needs to be responsible!
 
-    6. READY FOR THE NEXT ROUND! After the scorekeeper tallies everyone’s scores, chips are returned to each player and used cards are removed from the play area. The Victim Wheel is passed to the player to the left, who starts a new round as The Victim, by spinning The Victim Wheel and turning over five new cards. Play moves clockwise.
+    6. READY FOR THE NEXT ROUND! After the scorekeeper tallies everyone’s scores, the scenarios are reset. The player to the left starts a new round as The Victim, and a new set of scenarios are displayed. Play moves clockwise.
 
     ## HOW TO WIN
 
