@@ -7,7 +7,7 @@ import hashlib
 
 # @st.cache_data
 def display_user_rankings(player_id):
-    user_rankings = get_user_rankings(player_id, data_to_display=data_to_display)
+    user_rankings = get_user_rankings(player_id)
     return user_rankings
 
 

@@ -162,9 +162,9 @@ if __name__ == "__main__":
         "create account": create_account_page,
         "login existing account": existing_account_page,
         "welcome": welcome_page,
-        "lobby": lobby_page,
-        "game start": game_start_page,
-        "play round": play_round_page,
+        "lobby": lobby_page, ## can we combine lobby page and game_start_page together?
+        "game start": game_start_page, ##this is the landing page for a game, it explains rules
+        "play round": play_round_page, ##this is the UI showing scenarios and UI for rankings
     }
 
     st.session_state.in_lobby = False
