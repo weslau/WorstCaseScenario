@@ -2,6 +2,7 @@
 
 ## Flow diagram the different pages of webapp
 
+```mermaid
 flowchart TD;
 
 A[login] -->|clicks new account button| B[create account page]
@@ -22,7 +23,7 @@ G -->|Next Round| G
 G -->|Submit| G
 %% eventually we will want a way to finish the game
 %% G -->|Finish game| F
-
+```
 
 tasks:
 - getting a snowflake version of database to connect
