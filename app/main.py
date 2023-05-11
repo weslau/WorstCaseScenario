@@ -68,6 +68,7 @@ def game_start_page():
     # link to a page (function) called play_round_page() that implements the functionality of app.py
     start_game_button = st.button("Start Game")
     st.write("\n")
+    gameplay.print_game_rules()
 
     if start_game_button:
         st.session_state.current_page = "play round"
@@ -85,6 +86,7 @@ def play_round_page():
 
     if "round" not in st.session_state:
         st.session_state["round"] = 0
+        
     if "options_to_display" not in st.session_state or (
         st.session_state["new_round"] and st.button("Next Round")
     ):
@@ -130,12 +132,29 @@ def play_round_page():
     # Generate "Submit" button to send user rankings to DB
     submit_rankings_button = st.button("Submit")
     if submit_rankings_button:
-        # TODO: Implement sending user rankings to DB via API call the function
+        # TODO: Implement sending user rankings to DB via API call the function (replacing save to CSV in save_rankings_to_file)
+        # TODO: query game_id from db for current game (how?) and pass it into save_rankings_to_file
         
         # get player_ID from player_INFO table from DB
-        player_id = 12345
-        gameplay.save_rankings_to_file(rankings, player_id, st.session_state["options_to_display"])
+        query = f"""
+        select PLAYER_ID, PLAYER_NAME from {DB_NAME}.{SCHEMA_NAME}.PLAYER_INFO
+        """
+        df_players = snow.pull(query)
+        # get the dataframe of row with correct player name (from .loc), then get the player_id column as a pd series, then take the first index value
+        curr_player_id = df_players.loc[df_players.PLAYER_NAME == st.session_state.player_name]['PLAYER_ID'].values[0]
+        
+        gameplay.save_rankings_to_file(rankings, curr_player_id, st.session_state["options_to_display"],round_id=st.session_state["round"],game_id=None)
         st.write("User rankings submitted to DB.")
+    
+        # Show the rankings table for the current user, current round
+        user_rankings = gameplay.get_user_rankings(curr_player_id, data_to_display=data_to_display).tail(
+            5
+        )
+
+        st.write("\n\n\n")
+        st.write("Newest rankings:")
+        st.write(user_rankings.drop(["player_id","round","game_id"], axis=1))
+        wcs.back_widget(to="game start")
 
 
 if __name__ == "__main__":

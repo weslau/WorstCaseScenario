@@ -47,67 +47,42 @@ def get_user_rankings(player_id, data_to_display):
     user_rankings = df[df["player_id"] == player_id]
     print(user_rankings)
 
-    # # Only return the columns that need to be displayed, the rows must correspond to the scenarios that were sampled in data_to_display
-    # user_rankings = user_rankings.loc[
-    #     user_rankings["scenarios"].isin(data_to_display["scenarios"]),
-    #     ["scenarios", "ranking"],
-    # ]
-    # user_rankings["scenarios"] = user_rankings["scenarios"].astype(str)
-    # data_to_display["scenarios"] = data_to_display["scenarios"].astype(str)
-
-    # # Merge user_rankings with data_to_display based on the scenarios column to ensure correct order and only display relevant columns
-    # user_rankings = data_to_display[["scenarios"]].merge(
-    #     user_rankings, on="scenarios", how="left"
-    # )
-
     return user_rankings
 
 
-def save_rankings_to_file(rankings, player_id, data_to_display):
+def save_rankings_to_file(rankings, player_id, data_to_display, round_id, game_id):
     # Load the current rankings from the CSV file
     try:
         df = pd.read_csv("rankings.csv")
     except:
-        df = pd.DataFrame(columns=["player_id", "scenarios", "ranking"])
+        df = pd.DataFrame(columns=["player_id", "scenarios", "ranking", "game_id", "round"])
 
-    # Add the new rankings to the DataFrame
-    for i, ranking in enumerate(rankings):
-        df = df.append(
-            {
-                "player_id": player_id,
-                "scenarios": data_to_display[i],
-                "ranking": ranking,
-                "round": st.session_state["round"],
-                "game_id": None,
-            },
-            ignore_index=True,
-        )
+    # # Add the new rankings to the DataFrame
+    # for i, ranking in enumerate(rankings):
+    #     new_row = {
+    #         "player_id": player_id,
+    #         "scenarios": data_to_display[i],
+    #         "ranking": ranking,
+    #         "round": st.session_state["round"],
+    #         "game_id": None,
+    #     }
+    #     df = df.append(new_row, ignore_index=True)
+    # Create a list of dictionaries representing new rows to be added to the DataFrame
+    new_rows = []
+    for ranking, scenario in zip(rankings, data_to_display):
+        new_rows.append({
+            "player_id": player_id,
+            "scenarios": scenario,
+            "ranking": ranking,
+            "round": round_id,
+            "game_id": game_id,
+        })
 
+    # Concatenate the new rows with the existing DataFrame along the zeroth axis
+    df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
+    st.write(df)
     # Save the updated DataFrame to the CSV file
     df.to_csv("rankings.csv", index=False)
-
-
-# # Use SessionState to create an empty dataframe to store the player_id and associated username
-# if "players" not in st.session_state:
-#     st.session_state["players"] = pd.DataFrame(columns=["player_id", "username"])
-# # If the user has not yet logged in, display the login form
-# if "user" not in st.session_state or st.session_state["user"] == "":
-#     st.session_state["user"] = st.text_input("Enter your name:")
-#     if st.session_state["user"] != "":
-#         # Generate a player ID from hash of the user's username
-#         hash_object = hashlib.sha256(st.session_state["user"].encode())
-#         player_id = hash_object.hexdigest()
-#         # add player ID and input username string into st.session_state, used to save variables across streamlit app runs
-#         # session_state["players"] was created as a df, so you append a new row onto it using df.append
-#         st.session_state["players"] = st.session_state["players"].append(
-#             {"player_id": player_id, "username": st.session_state["user"]},
-#             ignore_index=True,
-#         )
-#         st.write(f"Welcome, {st.session_state['user']}! Your player ID is {player_id}.")
-
-
-# # Read rows from a text file and store them in a Pandas DataFrame
-# data_scenarios = read_rows_from_file("rows.txt")
 
 
 def get_random_options():
@@ -116,76 +91,31 @@ def get_random_options():
     )
 
 
-# if "round" not in st.session_state:
-#     st.session_state["round"] = 0
+def print_game_rules():
+    st.markdown('''
+    ## HOW TO PLAY
 
-# if "options_to_display" not in st.session_state or (
-#     st.session_state["new_round"] and st.button("Next Round")
-# ):
-#     # Randomly select 5 options to display
-#     get_random_options()
-#     st.session_state["new_round"] = False
+    1. SPIN AWAY! Player One, “The Victim,” starts the game by spinning The Victim Wheel and reading aloud the space they land on.
 
-# if st.button("Next Round"):
-#     # TODO: Implement error checking logic. If not all users in this round of this game have submitted rankings, don't advance round if pressed
-#     st.session_state["round"] += 1
-#     get_random_options()
+    2. FLIP ‘EM OVER! The Victim then turns over and reads aloud, one by one, the next five worst-case scenario cards...to create a row of five cards in the middle of the play area.
 
-# options_to_display = st.session_state["options_to_display"]
-# ##data_to_display is a dataframe, subset of matching rows from data. data is 2 col dataframe with scenarios and rankings (is rankings needed?)
-# # Create a DataFrame with the rows and an initial ranking of 0 for each row
-# data_to_display = pd.DataFrame(
-#     {"scenarios": options_to_display, "ranking": [0] * len(options_to_display)},
-#     columns=["scenarios", "ranking"],
-# )
-# # data_to_display = data_scenarios[data_scenarios["scenarios"].isin(options_to_display)]
+    3. RANK ‘EM! What scenario is bad, very bad, awful, horrible, or the worst...according to The Victim? Every player, including The Victim, decides how The Victim will rank the five cards from 1-5, by secretly placing their chips facedown next to each card (as shown below).
 
-# # Display the options and radio buttons for the current user
-# st.write(
-#     f"{st.session_state['user']}'s rankings for round {st.session_state['round']}:"
-# )
-# col1, col2, col3, col4, col5 = st.columns(5)
-# rankings = []
-# cols = [col1, col2, col3, col4, col5]
-# current_rankings = pd.DataFrame(columns=["scenarios", "ranking"])
+    - When there are 5-6 players, chips can be placed on either end of the card, so long as players remember their chip color.
+    - Table talk is encouraged, but players should be discreet when placing their chips facedown, so nobody knows how other players rank the five cards.
 
-# for i, row in data_to_display.reset_index(drop=True).iterrows():
-#     radio = cols[i].radio(
-#         f"{row['scenarios']}",
-#         [1, 2, 3, 4, 5],
-#         ## create a unique key to keep radio ranking button save state consistent
-#         # currently on a per user, per column (1-5), and per round basis. perhaps change it to include the GAME index later?
-#         key=f"{st.session_state['user']}-{i}-{st.session_state['round']}",
-#     )
+    4. REVEAL ‘EM! After all players have made their selections, The Victim reads aloud the first card on their left and turns over the other players’ corresponding chips. The Victim then reveals the numbered chip they assigned to that card. Players who match The Victim’s number should rejoice. Turn non-matching chips over to the “X” side. Players repeat this step for the remaining four cards/chips until selections are revealed for all five cards.)
 
-#     # Update the current_rankings DataFrame
-#     data_to_display.loc[
-#         data_to_display["scenarios"] == row["scenarios"], "ranking"
-#     ] = radio
-#     rankings.append(radio)
+    5. SCORING TIME! Unless The Victim lands on SCORE YOUR CHIPS! (see The Victim Wheel page), players get one point for every chip that matched one of The Victim’s chips PLUS any bonus points awarded on The Victim Wheel. The Victim gets the same number of points as the player(s) with the most points (including any bonus). Remember, we said the scorekeeper needs to be responsible!
 
-# ##find first instance of player_id associated with username matching user entered string
-# if "players" in st.session_state and not st.session_state["players"].empty:
-#     player_id = (
-#         st.session_state["players"]
-#         .loc[
-#             st.session_state["players"]["username"] == st.session_state["user"],
-#             "player_id",
-#         ]
-#         .iloc[0]
-#     )
-#     save_rankings_to_file(rankings, player_id, st.session_state["options_to_display"])
+    6. READY FOR THE NEXT ROUND! After the scorekeeper tallies everyone’s scores, chips are returned to each player and used cards are removed from the play area. The Victim Wheel is passed to the player to the left, who starts a new round as The Victim, by spinning The Victim Wheel and turning over five new cards. Play moves clockwise.
 
-#     # Show the rankings table for the current user, current round
-#     user_rankings = get_user_rankings(player_id, data_to_display=data_to_display).tail(
-#         5
-#     )
+    ## HOW TO WIN
 
-#     st.write("\n\n\n")
-#     st.write("Newest rankings:")
-#     st.write(user_rankings.drop("player_id", axis=1))
+    In a 3, 4, or 6-player game, the player with the most points after 12 rounds wins the game. In a 5-player game, the player with the most points after 10 rounds wins the game. If there is a tie at the end, continue play until the tie is broken and a winner is declared. For a quicker game, all players can simply have one less round playing The Victim.
 
-# # Generate "Submit" button to send user rankings to Snowflake DB
-# if st.button("Submit"):
-#     # TODO: Implement sending user rankings to Snowflake DB
-#     st.write("User rankings submitted to Snowflake DB.")
+    ## NOTES ON PLAY
+
+    - The Victim changes every round, and every player has an equal number of rounds playing The Victim.
+    - Always rank the cards secretly based on how you think The Victim will rank the cards.
+    ''')
