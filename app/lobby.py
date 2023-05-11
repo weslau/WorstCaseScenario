@@ -43,7 +43,7 @@ def lobby_page():
         st.write(name)
 
     ## start game widget
-    start_game_button = st.button("start game")
+    start_game_button = st.button("Ready to Play")
 
     if start_game_button:
         if n_players < 3:

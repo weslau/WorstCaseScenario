@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd, datetime as dt
+import random
 
 import uuid
 
@@ -8,7 +9,7 @@ from lobby import lobby_page
 
 import utils.snowflake as snow
 import utils.wcs as wcs
-import app as gameplay
+import gameplay as gameplay
 
 DB_NAME = wcs.DB_NAME
 SCHEMA_NAME = wcs.SCHEMA_NAME
@@ -62,15 +63,79 @@ def welcome_page():
 # this is where game instructions should be included
 def game_start_page():
     wcs.header()
+    # add game docs here:
+    
     # link to a page (function) called play_round_page() that implements the functionality of app.py
+    start_game_button = st.button("Start Game")
+    st.write("\n")
 
+    if start_game_button:
+        st.session_state.current_page = "play round"
+        st.experimental_rerun()
+        
     wcs.back_widget(to="lobby")
     
 def play_round_page():
     # TEMPORARY BEFORE DB SETUP:Read rows from a text file and store them in a Pandas DataFrame
     data_scenarios = gameplay.read_rows_from_file("rows.txt")
-    
+    def get_random_options():
+        st.session_state["options_to_display"] = random.sample(
+            data_scenarios["scenarios"].tolist(), 5
+        )
 
+    if "round" not in st.session_state:
+        st.session_state["round"] = 0
+    if "options_to_display" not in st.session_state or (
+        st.session_state["new_round"] and st.button("Next Round")
+    ):
+        # Randomly select 5 options to display
+        get_random_options()
+        st.session_state["new_round"] = False
+
+    if st.button("Next Round"):
+        # TODO: Implement error checking logic. If not all users in this round of this game have submitted rankings, don't advance round if pressed
+        st.session_state["round"] += 1
+        get_random_options()
+    options_to_display = st.session_state["options_to_display"]
+    ##data_to_display is a dataframe, subset of matching rows from data. data is 2 col dataframe with scenarios and rankings (is rankings needed?)
+    # Create a DataFrame with the rows and an initial ranking of 0 for each row
+    data_to_display = pd.DataFrame(
+        {"scenarios": options_to_display, "ranking": [0] * len(options_to_display)},
+        columns=["scenarios", "ranking"],
+    )
+
+    # Display the options and radio buttons for the current user
+    st.write(
+        f"{st.session_state.player_name}'s rankings for round {st.session_state['round']}:"
+    )
+    col1, col2, col3, col4, col5 = st.columns(5)
+    rankings = []
+    cols = [col1, col2, col3, col4, col5]
+    current_rankings = pd.DataFrame(columns=["scenarios", "ranking"])
+    for i, row in data_to_display.reset_index(drop=True).iterrows():
+        radio = cols[i].radio(
+            f"{row['scenarios']}",
+            [1, 2, 3, 4, 5],
+            ## create a unique key to keep radio ranking button save state consistent
+            # currently on a per user, per column (1-5), and per round basis. perhaps change it to include the GAME index later?
+            key=f"{st.session_state.player_name}-{i}-{st.session_state['round']}",
+        )
+
+        # Update the current_rankings DataFrame
+        data_to_display.loc[
+            data_to_display["scenarios"] == row["scenarios"], "ranking"
+        ] = radio
+        rankings.append(radio)
+        
+    # Generate "Submit" button to send user rankings to DB
+    submit_rankings_button = st.button("Submit")
+    if submit_rankings_button:
+        # TODO: Implement sending user rankings to DB via API call the function
+        
+        # get player_ID from player_INFO table from DB
+        player_id = 12345
+        gameplay.save_rankings_to_file(rankings, player_id, st.session_state["options_to_display"])
+        st.write("User rankings submitted to DB.")
 
 
 if __name__ == "__main__":

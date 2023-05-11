@@ -17,11 +17,22 @@ def read_rows_from_file(file_path):
         # Remove trailing '\n' characters from each row
         rows = [row.strip() for row in rows]
 
-    # Create a DataFrame with the rows and an initial ranking of 0 for each row
-    data_scenarios = pd.DataFrame(
-        {"scenarios": rows, "ranking": [0] * len(rows)},
-        columns=["scenarios", "ranking"],
-    )
+    # Create a DataFrame with the rows and convert 'scenarios' to string type (in case it's not already)
+    data_scenarios = pd.DataFrame({"scenarios": rows})
+    data_scenarios['scenarios'] = data_scenarios['scenarios'].astype(str)
+
+    # Generate a scenario ID from hash of each row in 'scenarios'
+    # And create a new column for these as well
+    data_scenarios["scenario_ID"] = data_scenarios["scenarios"].apply(lambda x: hash(x))
+
+    # Group by the 'scenario_ID' to remove duplicate scenarios. for duplicate IDs, keep the first instance of scenario text with that ID
+    data_scenarios = data_scenarios.groupby("scenario_ID")["scenarios"].first().reset_index()
+    # Rename cols as reminder this is how df is ordered now
+    data_scenarios.columns = ["scenario_ID", "scenarios"]
+    
+    # #Push this dataframe to DB via API calls
+    
+    
     return data_scenarios
 
 
@@ -76,27 +87,27 @@ def save_rankings_to_file(rankings, player_id, data_to_display):
     df.to_csv("rankings.csv", index=False)
 
 
-# Use SessionState to create an empty dataframe to store the player_id and associated username
-if "players" not in st.session_state:
-    st.session_state["players"] = pd.DataFrame(columns=["player_id", "username"])
-# If the user has not yet logged in, display the login form
-if "user" not in st.session_state or st.session_state["user"] == "":
-    st.session_state["user"] = st.text_input("Enter your name:")
-    if st.session_state["user"] != "":
-        # Generate a player ID from hash of the user's username
-        hash_object = hashlib.sha256(st.session_state["user"].encode())
-        player_id = hash_object.hexdigest()
-        # add player ID and input username string into st.session_state, used to save variables across streamlit app runs
-        # session_state["players"] was created as a df, so you append a new row onto it using df.append
-        st.session_state["players"] = st.session_state["players"].append(
-            {"player_id": player_id, "username": st.session_state["user"]},
-            ignore_index=True,
-        )
-        st.write(f"Welcome, {st.session_state['user']}! Your player ID is {player_id}.")
+# # Use SessionState to create an empty dataframe to store the player_id and associated username
+# if "players" not in st.session_state:
+#     st.session_state["players"] = pd.DataFrame(columns=["player_id", "username"])
+# # If the user has not yet logged in, display the login form
+# if "user" not in st.session_state or st.session_state["user"] == "":
+#     st.session_state["user"] = st.text_input("Enter your name:")
+#     if st.session_state["user"] != "":
+#         # Generate a player ID from hash of the user's username
+#         hash_object = hashlib.sha256(st.session_state["user"].encode())
+#         player_id = hash_object.hexdigest()
+#         # add player ID and input username string into st.session_state, used to save variables across streamlit app runs
+#         # session_state["players"] was created as a df, so you append a new row onto it using df.append
+#         st.session_state["players"] = st.session_state["players"].append(
+#             {"player_id": player_id, "username": st.session_state["user"]},
+#             ignore_index=True,
+#         )
+#         st.write(f"Welcome, {st.session_state['user']}! Your player ID is {player_id}.")
 
 
-# Read rows from a text file and store them in a Pandas DataFrame
-data_scenarios = read_rows_from_file("rows.txt")
+# # Read rows from a text file and store them in a Pandas DataFrame
+# data_scenarios = read_rows_from_file("rows.txt")
 
 
 def get_random_options():
@@ -105,76 +116,76 @@ def get_random_options():
     )
 
 
-if "round" not in st.session_state:
-    st.session_state["round"] = 0
+# if "round" not in st.session_state:
+#     st.session_state["round"] = 0
 
-if "options_to_display" not in st.session_state or (
-    st.session_state["new_round"] and st.button("Next Round")
-):
-    # Randomly select 5 options to display
-    get_random_options()
-    st.session_state["new_round"] = False
+# if "options_to_display" not in st.session_state or (
+#     st.session_state["new_round"] and st.button("Next Round")
+# ):
+#     # Randomly select 5 options to display
+#     get_random_options()
+#     st.session_state["new_round"] = False
 
-if st.button("Next Round"):
-    # TODO: Implement error checking logic. If not all users in this round of this game have submitted rankings, don't advance round if pressed
-    st.session_state["round"] += 1
-    get_random_options()
+# if st.button("Next Round"):
+#     # TODO: Implement error checking logic. If not all users in this round of this game have submitted rankings, don't advance round if pressed
+#     st.session_state["round"] += 1
+#     get_random_options()
 
-options_to_display = st.session_state["options_to_display"]
-##data_to_display is a dataframe, subset of matching rows from data. data is 2 col dataframe with scenarios and rankings (is rankings needed?)
-# Create a DataFrame with the rows and an initial ranking of 0 for each row
-data_to_display = pd.DataFrame(
-    {"scenarios": options_to_display, "ranking": [0] * len(options_to_display)},
-    columns=["scenarios", "ranking"],
-)
-# data_to_display = data_scenarios[data_scenarios["scenarios"].isin(options_to_display)]
+# options_to_display = st.session_state["options_to_display"]
+# ##data_to_display is a dataframe, subset of matching rows from data. data is 2 col dataframe with scenarios and rankings (is rankings needed?)
+# # Create a DataFrame with the rows and an initial ranking of 0 for each row
+# data_to_display = pd.DataFrame(
+#     {"scenarios": options_to_display, "ranking": [0] * len(options_to_display)},
+#     columns=["scenarios", "ranking"],
+# )
+# # data_to_display = data_scenarios[data_scenarios["scenarios"].isin(options_to_display)]
 
-# Display the options and radio buttons for the current user
-st.write(
-    f"{st.session_state['user']}'s rankings for round {st.session_state['round']}:"
-)
-col1, col2, col3, col4, col5 = st.columns(5)
-rankings = []
-cols = [col1, col2, col3, col4, col5]
-current_rankings = pd.DataFrame(columns=["scenarios", "ranking"])
+# # Display the options and radio buttons for the current user
+# st.write(
+#     f"{st.session_state['user']}'s rankings for round {st.session_state['round']}:"
+# )
+# col1, col2, col3, col4, col5 = st.columns(5)
+# rankings = []
+# cols = [col1, col2, col3, col4, col5]
+# current_rankings = pd.DataFrame(columns=["scenarios", "ranking"])
 
-for i, row in data_to_display.reset_index(drop=True).iterrows():
-    radio = cols[i].radio(
-        f"{row['scenarios']}",
-        [1, 2, 3, 4, 5],
-        ## create a unique key to keep radio ranking button save state consistent
-        # currently on a per user, per column (1-5), and per round basis. perhaps change it to include the GAME index later?
-        key=f"{st.session_state['user']}-{i}-{st.session_state['round']}",
-    )
+# for i, row in data_to_display.reset_index(drop=True).iterrows():
+#     radio = cols[i].radio(
+#         f"{row['scenarios']}",
+#         [1, 2, 3, 4, 5],
+#         ## create a unique key to keep radio ranking button save state consistent
+#         # currently on a per user, per column (1-5), and per round basis. perhaps change it to include the GAME index later?
+#         key=f"{st.session_state['user']}-{i}-{st.session_state['round']}",
+#     )
 
-    # Update the current_rankings DataFrame
-    data_to_display.loc[
-        data_to_display["scenarios"] == row["scenarios"], "ranking"
-    ] = radio
-    rankings.append(radio)
+#     # Update the current_rankings DataFrame
+#     data_to_display.loc[
+#         data_to_display["scenarios"] == row["scenarios"], "ranking"
+#     ] = radio
+#     rankings.append(radio)
 
-##find first instance of player_id associated with username matching user entered string
-if "players" in st.session_state and not st.session_state["players"].empty:
-    player_id = (
-        st.session_state["players"]
-        .loc[
-            st.session_state["players"]["username"] == st.session_state["user"],
-            "player_id",
-        ]
-        .iloc[0]
-    )
-    save_rankings_to_file(rankings, player_id, st.session_state["options_to_display"])
+# ##find first instance of player_id associated with username matching user entered string
+# if "players" in st.session_state and not st.session_state["players"].empty:
+#     player_id = (
+#         st.session_state["players"]
+#         .loc[
+#             st.session_state["players"]["username"] == st.session_state["user"],
+#             "player_id",
+#         ]
+#         .iloc[0]
+#     )
+#     save_rankings_to_file(rankings, player_id, st.session_state["options_to_display"])
 
-    # Show the rankings table for the current user, current round
-    user_rankings = get_user_rankings(player_id, data_to_display=data_to_display).tail(
-        5
-    )
+#     # Show the rankings table for the current user, current round
+#     user_rankings = get_user_rankings(player_id, data_to_display=data_to_display).tail(
+#         5
+#     )
 
-    st.write("\n\n\n")
-    st.write("Newest rankings:")
-    st.write(user_rankings.drop("player_id", axis=1))
+#     st.write("\n\n\n")
+#     st.write("Newest rankings:")
+#     st.write(user_rankings.drop("player_id", axis=1))
 
-# Generate "Submit" button to send user rankings to Snowflake DB
-if st.button("Submit"):
-    # TODO: Implement sending user rankings to Snowflake DB
-    st.write("User rankings submitted to Snowflake DB.")
+# # Generate "Submit" button to send user rankings to Snowflake DB
+# if st.button("Submit"):
+#     # TODO: Implement sending user rankings to Snowflake DB
+#     st.write("User rankings submitted to Snowflake DB.")
