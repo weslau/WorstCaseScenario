@@ -12,17 +12,17 @@ B -->|creates account| D
 B -->|clicks back button| A
 C -->|logs in with existing account| D
 C -->|clicks back button| A
-F -->|Start Game| G(play_round_page)
-F -->|goes back to game start| E
-E -->|goes back to welcome| D
-A -->|Continue as Guest| D(welcome)
 D -->|Join Game| E(lobby)
 D -->|Create Game| E(lobby)
-E -->|Ready to Play| F(game_start_page)
+E -->|Ready to Play| G(play_round_page)
+E -->|goes back to welcome| D
+%% F -->|Start Game| G
 G -->|Next Round| G
 G -->|Submit| G
+G -->|goes back to lobby| E
 %% eventually we will want a way to finish the game
 %% G -->|Finish game| F
+
 ```
 
 tasks:
