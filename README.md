@@ -16,7 +16,7 @@ D -->|Join Game| E(lobby)
 D -->|Create Game| E(lobby)
 E -->|Ready to Play| G(play_round_page)
 E -->|goes back to welcome| D
-%% F -->|Start Game| G
+A -->|Continue as Guest| D(welcome)
 G -->|Next Round| G
 G -->|Submit| G
 G -->|goes back to lobby| E
