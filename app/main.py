@@ -152,7 +152,7 @@ def play_round_page():
         st.write("\n\n\n")
         st.write("Newest rankings:")
         st.write(user_rankings.drop(["player_id","round","game_id"], axis=1))
-        wcs.back_widget(to="game start")
+        wcs.back_widget(to="lobby")
 
 
 if __name__ == "__main__":
