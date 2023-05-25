@@ -79,12 +79,7 @@ def game_start_page():
     
 def play_round_page():
     # TEMPORARY BEFORE DB SETUP:Read rows from a text file and store them in a Pandas DataFrame
-    # get current working dir
-    cwd = os.getcwd()
-    # Join the directory and file name to create the full file path
-    scenarios_file_path = os.path.join(cwd, "app/rows.txt")
-    st.write(scenarios_file_path)
-    scenarios_file_path = "/app/worstcasescenario/app/rows.txt"
+    # the full file path is actually scenarios_file_path = "/app/worstcasescenario/app/rows.txt"
     scenarios_relative_path = "app/rows.txt"
     data_scenarios = gameplay.read_rows_from_file(file_path=scenarios_relative_path)
     def get_random_options():
