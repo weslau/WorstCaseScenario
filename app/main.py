@@ -82,10 +82,11 @@ def play_round_page():
     # get current working dir
     cwd = os.getcwd()
     # Join the directory and file name to create the full file path
-    scenarios_file_path = os.path.join(cwd, "rows.txt")
+    scenarios_file_path = os.path.join(cwd, "app/rows.txt")
     st.write(scenarios_file_path)
     scenarios_file_path = "/app/worstcasescenario/app/rows.txt"
-    data_scenarios = gameplay.read_rows_from_file(file_path=scenarios_file_path)
+    scenarios_relative_path = "/app/rows.txt"
+    data_scenarios = gameplay.read_rows_from_file(file_path=scenarios_relative_path)
     def get_random_options():
         st.session_state["options_to_display"] = random.sample(
             data_scenarios["scenarios"].tolist(), 5
