@@ -10,6 +10,7 @@ from lobby import lobby_page
 import utils.snowflake as snow
 import utils.wcs as wcs
 import gameplay as gameplay
+import os
 
 DB_NAME = wcs.DB_NAME
 SCHEMA_NAME = wcs.SCHEMA_NAME
@@ -78,7 +79,11 @@ def game_start_page():
     
 def play_round_page():
     # TEMPORARY BEFORE DB SETUP:Read rows from a text file and store them in a Pandas DataFrame
-    data_scenarios = gameplay.read_rows_from_file("rows.txt")
+    # get current working dir
+    cwd = os.getcwd()
+    # Join the directory and file name to create the full file path
+    scenarios_file_path = os.path.join(cwd, "rows.txt")
+    data_scenarios = gameplay.read_rows_from_file(file_path=scenarios_file_path)
     def get_random_options():
         st.session_state["options_to_display"] = random.sample(
             data_scenarios["scenarios"].tolist(), 5
