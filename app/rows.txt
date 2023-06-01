@@ -53,3 +53,16 @@ Have your email hacked
 Be mistaken for someone else
 Get a flat tire on the highway
 Have your appendix burst
+Being late to your own proposed group meeting
+Having 1 day left to earn all your elevate points for the year
+Getting stuck in the elevator in Boelter Hall
+Writing up beautiful documentation for your project only to accidentally lose it in a git mistake
+Spilling coffee on your boss' computer
+Accidentally spending $69,420 on the company AWS account
+Legal deems your project unpublishable
+Accidentally pushing code with a major bug to production during peak hours
+Forgetting to save or commit your work before your computer crashes
+Accidentally deleting a production database or critical data
+Realizing that your code has a major flaw that will require significant rework
+Accidentally releasing sensitive or confidential information to the public or competitors
+Misinterpreting or miscommunicating project scope or requirements, leading to significant delays or errors.
