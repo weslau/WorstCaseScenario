@@ -18,7 +18,10 @@ def create_account(new_username):
         st.session_state.current_page = "welcome"
         st.experimental_rerun()
     
-    except:
+    except Exception as e:
+    # If you just "Except:" it catches a BaseException: RerunData(page_script_hash='195f142363f570330eea1b6ff39c752d')
+    # Don't know what this is though so ignoring it
+        st.write(e)
         wcs.assign_blame()
 
 def create_account_page():
