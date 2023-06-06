@@ -1,4 +1,5 @@
 import streamlit as st, datetime as dt
+import time
 
 import utils.snowflake as snow
 from utils.wcs import DB_NAME, SCHEMA_NAME, header, back_widget
@@ -63,3 +64,5 @@ def lobby_page():
     gameplay.print_game_rules()
 
     back_widget()
+    time.sleep(2)
+    st.experimental_rerun()
