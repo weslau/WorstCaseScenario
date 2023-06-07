@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd, datetime as dt
 import random
+import math
 
 import uuid
 
@@ -76,16 +77,41 @@ def game_start_page():
         st.experimental_rerun()
         
     wcs.back_widget(to="lobby")
+
+def convert_to_number(s):
+    return int.from_bytes(s.encode(), 'little')
+
+def same_scenarios(filepath, num_of_scenarios=5):
+    """
+    Problem is scenarios shown in each round are not the same for all players (per game per round)
+    Function steps to get deterministic/ same scenarios for all players
+    seed for ULOMCF: 77254873795669
+    """
+    all_scenarios_list = pd.read_csv(filepath, delimiter = "\t", names=['scenario'])['scenario'].to_list()
+    game_code_seed = convert_to_number(st.session_state.game_code) # unique ID for game ID but same every time 
+    random.Random(game_code_seed).shuffle(all_scenarios_list)
+    
+    # return 0-4 scenarios for 1st round, 5-9 second round, etc. 
+    start_indx = num_of_scenarios * st.session_state["round"]
+    end_indx = start_indx + num_of_scenarios
+
+    #st.write(game_code_seed, all_scenarios_list)
+    st.session_state["options_to_display"] = all_scenarios_list[start_indx:end_indx]
+
+    # if reach end? do try except
+
+    return None
     
 def play_round_page():
     # TEMPORARY BEFORE DB SETUP:Read rows from a text file and store them in a Pandas DataFrame
     # the full file path is actually scenarios_file_path = "/app/worstcasescenario/app/rows.txt"
     scenarios_relative_path = "app/rows.txt"
-    data_scenarios = gameplay.read_rows_from_file(file_path=scenarios_relative_path)
-    def get_random_options():
-        st.session_state["options_to_display"] = random.sample(
-            data_scenarios["scenarios"].tolist(), 5
-        )
+    
+    # data_scenarios = gameplay.read_rows_from_file(file_path=scenarios_relative_path)
+    # def get_random_options():
+    #     st.session_state["options_to_display"] = random.sample(
+    #         data_scenarios["scenarios"].tolist(), 5
+    #     )
 
     if "round" not in st.session_state:
         st.session_state["round"] = 0
@@ -94,13 +120,15 @@ def play_round_page():
         st.session_state["new_round"] and st.button("Next Round")
     ):
         # Randomly select 5 options to display
-        get_random_options()
+        #get_random_options()
+        same_scenarios(scenarios_relative_path)
         st.session_state["new_round"] = False
 
     if st.button("Next Round"):
         # TODO: Implement error checking logic. If not all users in this round of this game have submitted rankings, don't advance round if pressed
         st.session_state["round"] += 1
-        get_random_options()
+        #get_random_options()
+        same_scenarios(scenarios_relative_path)
     options_to_display = st.session_state["options_to_display"]
     ##data_to_display is a dataframe, subset of matching rows from data. data is 2 col dataframe with scenarios and rankings (is rankings needed?)
     # Create a DataFrame with the rows and an initial ranking of 0 for each row
