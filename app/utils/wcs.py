@@ -37,6 +37,7 @@ def assign_blame():
     st.error(f"Something went wrong. Blame {whos_at_fault}.")
 
 def generate_game_code():
+    # If there end up being too many dups/collisions in game code, change to 8 letter game code
     return ''.join(random.choice(string.ascii_uppercase) for _ in range(6))
 
 def generate_pseudonym():
