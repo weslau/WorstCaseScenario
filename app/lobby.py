@@ -12,6 +12,16 @@ def join_lobby(df_lobby):
         pass
 
     else:
+
+        # Delete all other instances of the player.
+        query = f"""
+        DELETE from {DB_NAME}.{SCHEMA_NAME}.lobby_info
+        where
+            PLAYER_NAME = '{player_name}'
+        """
+        snow.pull(query)
+
+        # Add player with corresponding lobby to Snowflake.
         colnames = ["game_code", "player_name", "joined_at"]
         values = [game_code, player_name, dt.datetime.now()]
         snow.push("lobby_info", colnames, values)
