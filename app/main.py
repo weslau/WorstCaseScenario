@@ -146,15 +146,21 @@ def play_round_page():
         # get the dataframe of row with correct player name (from .loc), then get the player_id column as a pd series, then take the first index value
         curr_player_id = df_players.loc[df_players.PLAYER_NAME == st.session_state.player_name]['PLAYER_ID'].values[0]
         
-        gameplay.save_rankings_to_file(rankings, curr_player_id, st.session_state["options_to_display"],round_id=st.session_state["round"],game_id=None)
+        # write another function that generates scenario_ID's from data_to_display scenario_strings
+        data_to_display['scenario_id'] = data_to_display.apply(lambda row: str(uuid.uuid4()), axis=1)
+        # TODO: push that scenario & scenario ID table to SCENARIO_METADATA
+        
+        # then make save_rankings_to_db function take in scenario ID's and push the ranking data into snowflake when submitted
+        gameplay.save_rankings_to_file(rankings, curr_player_id, data_to_display,round_id=st.session_state["round"],game_id=1234)
         st.write("User rankings submitted to DB.")
     
         # Show the rankings table for the current user, current round
         user_rankings = gameplay.get_user_rankings(curr_player_id).tail(5)
+        st.write(user_rankings)
 
         st.write("\n\n\n")
         st.write("Newest rankings:")
-        st.write(user_rankings.drop(["player_id","round","game_id"], axis=1))
+        # st.write(user_rankings.drop(["player_id","round","game_id"], axis=1))
         wcs.back_widget(to="lobby")
 
 
