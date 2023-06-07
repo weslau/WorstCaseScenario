@@ -172,6 +172,14 @@ def play_round_page():
         # st.write(user_rankings.drop(["player_id","round","game_id"], axis=1))
         wcs.back_widget(to="lobby")
 
+        # Wait for everyone to submit scores
+        current_game, current_round = "1234", 0
+        victim="weslau"
+        all_rankings = gameplay.get_all_rankings(current_game, current_round)
+        distance_df = gameplay.get_player_distances(all_rankings, victim=victim)
+        st.write(distance_df)
+        gameplay.save_distances_to_db(current_game, current_round, distance_df)        
+
 
 if __name__ == "__main__":
 
@@ -189,6 +197,11 @@ if __name__ == "__main__":
 
     if "current_page" not in st.session_state:
         login_page()
+
+        current_game, current_round = "1234", 0
+        all_rankings = gameplay.get_all_rankings(current_game, current_round)
+        distance_df = gameplay.get_player_distances(all_rankings, victim="weslau")
+        gameplay.save_distances_to_db(current_game, current_round, distance_df)
     
     else:
         page_dict[st.session_state.current_page]()
