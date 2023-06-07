@@ -1,4 +1,4 @@
-
+import datetime as dt
 import streamlit as st
 import uuid, string
 
@@ -18,7 +18,10 @@ def create_account(new_username):
         st.session_state.current_page = "welcome"
         st.experimental_rerun()
     
-    except:
+    except Exception as e:
+    # If you just "Except:" it catches a BaseException: RerunData(page_script_hash='195f142363f570330eea1b6ff39c752d')
+    # Don't know what this is though so ignoring it
+        st.write(e)
         wcs.assign_blame()
 
 def create_account_page():
@@ -116,3 +119,16 @@ def login_page():
         st.session_state.player_name = pseudonym
         st.session_state.current_page = "welcome"
         st.experimental_rerun()
+
+    # Delete old games.
+    delete_old_games()
+
+
+def delete_old_games():
+    hours_to_delete = 24
+
+    query = f"""
+    DELETE from {DB_NAME}.{SCHEMA_NAME}.lobby_info
+        WHERE TIMEDIFF(hours, JOINED_AT, '{dt.datetime.now()}') > {hours_to_delete}
+    """
+    snow.pull(query)
