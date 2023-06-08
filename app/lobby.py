@@ -1,4 +1,5 @@
 import streamlit as st, datetime as dt
+import time
 
 import utils.snowflake as snow
 from utils.wcs import DB_NAME, SCHEMA_NAME, header, back_widget
@@ -11,12 +12,42 @@ def join_lobby(df_lobby):
         pass
 
     else:
+
+        # Delete all other instances of the player.
+        query = f"""
+        DELETE from {DB_NAME}.{SCHEMA_NAME}.lobby_info
+        where
+            PLAYER_NAME = '{player_name}'
+        """
+        snow.pull(query)
+
+        # Add player with corresponding lobby to Snowflake.
         colnames = ["game_code", "player_name", "joined_at"]
         values = [game_code, player_name, dt.datetime.now()]
         snow.push("lobby_info", colnames, values)
         st.experimental_rerun()
 
     st.session_state.in_lobby = True
+
+def leave_lobby(df_lobby):
+    game_code, player_name = st.session_state.game_code, st.session_state.player_name
+
+    if [game_code, player_name] in df_lobby[["GAME_CODE", "PLAYER_NAME"]].values.tolist():
+        conditional = (df_lobby['GAME_CODE']==game_code) & (df_lobby['PLAYER_NAME']==player_name)
+        df_lobby = df_lobby.drop(df_lobby[conditional].index)
+
+    # Remove from Snowflake too,
+    query = f"""
+    DELETE from {DB_NAME}.{SCHEMA_NAME}.lobby_info
+    where
+        game_code = '{st.session_state.game_code}'
+        AND PLAYER_NAME = '{player_name}'
+    """
+    df_lobby = snow.pull(query)
+
+    st.session_state.in_lobby = False
+    st.session_state.current_page = "welcome"
+    st.experimental_rerun()
 
 
 def lobby_page():
@@ -60,6 +91,13 @@ def lobby_page():
             st.session_state.current_page = "play round"
             st.experimental_rerun()
     
+    # Leave lobby.
+    leave_lobby_button = st.button("Leave lobby")
+    if leave_lobby_button:
+        leave_lobby(df_lobby)
+
     gameplay.print_game_rules()
 
     back_widget()
+    time.sleep(2)
+    st.experimental_rerun()

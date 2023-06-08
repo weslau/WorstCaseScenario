@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import random
 import streamlit as st
@@ -5,6 +6,10 @@ import uuid
 import hashlib
 import utils.snowflake as snow
 import utils.wcs as wcs
+
+
+DB_NAME = wcs.DB_NAME
+SCHEMA_NAME = wcs.SCHEMA_NAME
 
 # @st.cache_data
 def display_user_rankings(player_id):
@@ -53,8 +58,15 @@ def get_user_rankings(player_id):
 
     # Filter the DataFrame to only show the rankings for the current user
     user_rankings = df[df["player_id"] == player_id]
-    print(user_rankings)
-
+    ##instead, get user rankings from RANKINGS table and  show the ones from current player
+    # get player_ID from player_INFO table from DB
+    DB_NAME = wcs.DB_NAME
+    SCHEMA_NAME = wcs.SCHEMA_NAME
+    query = f"""
+    select PLAYER_ID, RANK, SCENARIO_ID from {DB_NAME}.{SCHEMA_NAME}.RANKINGS
+    """
+    df = snow.pull(query)
+    user_rankings = df[df["PLAYER_ID"] == player_id]
     return user_rankings
 
 def save_rankings_to_file(rankings, player_id, data_to_display, round_id, game_id):
@@ -62,25 +74,69 @@ def save_rankings_to_file(rankings, player_id, data_to_display, round_id, game_i
     try:
         df = pd.read_csv("rankings.csv")
     except:
-        df = pd.DataFrame(columns=["player_id", "scenarios", "ranking", "game_id", "round"])
+        df = pd.DataFrame(columns=["player_id", "scenarios", "ranking", "round", "game_id", "scenario_id"])
 
-    # # Add the new rankings to the DataFrame
-    # rankings and data_to_display are both dataframes with the same index, so rankings[i] will be ranking for scenario in data_to_display[i]
-    new_rows = []
-    for ranking, scenario in zip(rankings, data_to_display):
-        new_rows.append({
-            "player_id": player_id,
-            "scenarios": scenario,
-            "ranking": ranking,
-            "round": round_id,
-            "game_id": game_id,
-        })
+    # # # Add the new rankings to the DataFrame
+    # # rankings and data_to_display are both dataframes with the same index, so rankings[i] will be ranking for scenario in data_to_display[i]
+    # new_rows = []
+    # for i, (ranking, row) in enumerate(zip(rankings, data_to_display.iterrows())):
+    #     new_rows.append({
+    #         "player_id": player_id,
+    #         "scenarios": row['scenarios'],
+    #         "ranking": ranking,
+    #         "round": round_id,
+    #         "game_id": game_id,
+    #         "scenario_id": row['scenario_id']
+    #     })
 
-    # Concatenate the new rows with the existing DataFrame along the zeroth axis
-    df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
-    st.write(df)
+    # # Concatenate the new rows with the existing DataFrame along the zeroth axis
+    # df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
+    # # Convert the list of dictionaries to a pandas DataFrame
+    # new_rankings_df = pd.DataFrame(new_rows, index=data_to_display.index)
+
+    # # st.write(new_rankings_df)
+    
+    # push the new_rows data into snowflake database RANKINGS table
+    for (index, row), ranking in zip(data_to_display.iterrows(), rankings):
+        table_columns = ["GAME_ID", "PLAYER_ID", "RANK", "ROUND_NO", "SCENARIO_ID"]
+        table_values = [game_id, player_id, ranking, round_id, row.loc["scenario_id"]]
+        # st.write(table_columns, table_values)
+        snow.push("RANKINGS", table_columns, table_values)
+    
     # Save the updated DataFrame to the CSV file
     df.to_csv("rankings.csv", index=False)
+
+def get_all_rankings(current_game, current_round):
+    query = f"""
+        SELECT t1.SCENARIO_ID, t1.PLAYER_ID, t2.PLAYER_NAME, t1.RANK from {DB_NAME}.{SCHEMA_NAME}.RANKINGS t1
+        JOIN {DB_NAME}.{SCHEMA_NAME}.PLAYER_INFO t2 ON t1.PLAYER_ID = t2.PLAYER_ID
+        WHERE GAME_ID LIKE {current_game} AND ROUND_NO = {current_round}
+        """
+    rankings = snow.pull(query)
+    all_rankings = pd.pivot_table(rankings, values='RANK', index='SCENARIO_ID', columns='PLAYER_NAME', aggfunc='sum')
+    return all_rankings
+
+
+def get_player_distances(all_rankings, victim):
+    st.write(all_rankings)
+    victim_choice = all_rankings[victim].values
+    st.write(victim_choice)
+    distances = {}
+    for player in all_rankings.columns:
+        # if player == victim:
+        #     continue
+        player_guess = all_rankings[player].values
+        distance = np.linalg.norm(victim_choice - player_guess)
+        distances[player] = distance
+    distance_df = pd.DataFrame.from_dict(distances, orient='index', columns=['Player', 'Distance']).reset_index()
+    return distance_df
+
+def save_distances_to_db(current_game, current_round, distance_df):
+    columns = ["GAME_ID", "ROUND_NO", "PLAYER_ID", "PLAYER_SCORE"]
+
+    for index, row in distance_df.iterrows():
+        values = [current_game, current_round, row["Player"], row["Distance"]]
+        snow.push(table_name="PLAYER_SCORES", columns=columns, values=values)
 
 def print_game_rules():
     st.markdown('''
@@ -109,3 +165,6 @@ def print_game_rules():
     - The Victim changes every round, and every player has an equal number of rounds playing The Victim.
     - Always rank the cards secretly based on how you think The Victim will rank the cards.
     ''')
+    
+def compare_ranking(victim_playerid, second_playerid, df_gameplay):
+    return 0

@@ -33,7 +33,8 @@ def welcome_page():
         new_game_code = wcs.generate_game_code()
         st.session_state.game_code = new_game_code
         table_columns = ["GAME_ID", "GAME_CODE", "GAME_TIME_START", "IS_ACTIVE"]
-        table_values = [str(uuid.uuid4()), st.session_state.game_code, dt.datetime.now(), True]
+        st.session_state.game_id = str(uuid.uuid4())
+        table_values = [st.session_state.game_id, st.session_state.game_code, dt.datetime.now(), True]
         snow.push("GAMES", table_columns, table_values)
 
         st.session_state.current_page = "lobby"
@@ -44,7 +45,7 @@ def welcome_page():
         select * from {DB_NAME}.{SCHEMA_NAME}.GAMES
         where IS_ACTIVE = TRUE
         """
-
+        # GAME_CODE,GAME_ID,GAME_TIME_START, IS_ACTIVE all included in df_games
         df_games = snow.pull(query)
         is_active_game = entered_game_code in df_games.GAME_CODE.tolist()
 
@@ -52,6 +53,7 @@ def welcome_page():
             st.session_state.current_page = "lobby"
             st.session_state.game_code = entered_game_code
             st.experimental_rerun()
+            # st.write(df_games)
 
         else:
             st.error("Not an active game code.")
@@ -159,7 +161,6 @@ def play_round_page():
     # Generate "Submit" button to send user rankings to DB
     submit_rankings_button = st.button("Submit")
     if submit_rankings_button:
-        # TODO: Implement sending user rankings to DB via API call the function (replacing save to CSV in save_rankings_to_file)
         # TODO: query game_id from db for current game (how?) and pass it into save_rankings_to_file
         
         # get player_ID from player_INFO table from DB
@@ -170,16 +171,38 @@ def play_round_page():
         # get the dataframe of row with correct player name (from .loc), then get the player_id column as a pd series, then take the first index value
         curr_player_id = df_players.loc[df_players.PLAYER_NAME == st.session_state.player_name]['PLAYER_ID'].values[0]
         
-        gameplay.save_rankings_to_file(rankings, curr_player_id, st.session_state["options_to_display"],round_id=st.session_state["round"],game_id=None)
-        st.write("User rankings submitted to DB.")
+        query = f"""
+        select * from {DB_NAME}.{SCHEMA_NAME}.GAMES
+        where IS_ACTIVE = TRUE
+        """
+        # GAME_CODE,GAME_ID,GAME_TIME_START, IS_ACTIVE all included in df_games
+        df_games = snow.pull(query)
+        game_id = df_games[df_games['GAME_CODE']== st.session_state.game_code]["GAME_ID"][0]
+        
+        # write another function that generates scenario_ID's from data_to_display scenario_strings
+        data_to_display['scenario_id'] = data_to_display.apply(lambda row: str(uuid.uuid4()), axis=1)
+        # TODO: push that scenario & scenario ID table to SCENARIO_METADATA
+        
+        # then make save_rankings_to_db function take in scenario ID's and push the ranking data into snowflake when submitted
+        gameplay.save_rankings_to_file(rankings, curr_player_id, data_to_display,round_id=st.session_state["round"],game_id=game_id)
+        st.write(f"{st.session_state.game_code} {game_id} was submitted to db")
     
         # Show the rankings table for the current user, current round
         user_rankings = gameplay.get_user_rankings(curr_player_id).tail(5)
+        st.write(user_rankings)
 
         st.write("\n\n\n")
         st.write("Newest rankings:")
-        st.write(user_rankings.drop(["player_id","round","game_id"], axis=1))
+        # st.write(user_rankings.drop(["player_id","round","game_id"], axis=1))
         wcs.back_widget(to="lobby")
+
+        # Wait for everyone to submit scores
+        current_game, current_round = "1234", 0
+        victim="weslau"
+        all_rankings = gameplay.get_all_rankings(current_game, current_round)
+        distance_df = gameplay.get_player_distances(all_rankings, victim=victim)
+        st.write(distance_df)
+        gameplay.save_distances_to_db(current_game, current_round, distance_df)        
 
 
 if __name__ == "__main__":
@@ -198,6 +221,11 @@ if __name__ == "__main__":
 
     if "current_page" not in st.session_state:
         login_page()
+
+        current_game, current_round = "1234", 0
+        all_rankings = gameplay.get_all_rankings(current_game, current_round)
+        distance_df = gameplay.get_player_distances(all_rankings, victim="weslau")
+        gameplay.save_distances_to_db(current_game, current_round, distance_df)
     
     else:
         page_dict[st.session_state.current_page]()
