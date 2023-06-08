@@ -80,6 +80,7 @@ def game_start_page():
     wcs.back_widget(to="lobby")
     
 def play_round_page():
+    st.set_page_config(page_title="Worst Case Scenario", layout="wide", initial_sidebar_state="expanded")
     # TEMPORARY BEFORE DB SETUP:Read rows from a text file and store them in a Pandas DataFrame
     # the full file path is actually scenarios_file_path = "/app/worstcasescenario/app/rows.txt"
     scenarios_relative_path = "app/rows.txt"
