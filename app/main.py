@@ -53,7 +53,6 @@ def welcome_page():
             st.session_state.current_page = "lobby"
             st.session_state.game_code = entered_game_code
             st.experimental_rerun()
-            # st.write(df_games)
 
         else:
             st.error("Not an active game code.")
@@ -193,7 +192,6 @@ def play_round_page():
 
         st.write("\n\n\n")
         st.write("Newest rankings:")
-        # st.write(user_rankings.drop(["player_id","round","game_id"], axis=1))
         wcs.back_widget(to="lobby")
 
         # Wait for everyone to submit scores

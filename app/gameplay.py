@@ -43,8 +43,6 @@ def push_rows_to_db(file_path):
     
     # Push this dataframe to DB table called SCENARIO_METADATA via API calls
     for index, row in data_scenarios.iterrows():
-        # scenario_id = row['scenario_id']
-        # scenario_text = row['scenario_text']
         table_columns = ["SCENARIO_CATEGORY", "SCENARIO_ID", "SCENARIO_TEXT"]
         table_values = [None, row['scenario_id'], row['scenario_text']]
         snow.push("SCENARIO_METADATA", table_columns, table_values)
@@ -75,26 +73,6 @@ def save_rankings_to_file(rankings, player_id, data_to_display, round_id, game_i
         df = pd.read_csv("rankings.csv")
     except:
         df = pd.DataFrame(columns=["player_id", "scenarios", "ranking", "round", "game_id", "scenario_id"])
-
-    # # # Add the new rankings to the DataFrame
-    # # rankings and data_to_display are both dataframes with the same index, so rankings[i] will be ranking for scenario in data_to_display[i]
-    # new_rows = []
-    # for i, (ranking, row) in enumerate(zip(rankings, data_to_display.iterrows())):
-    #     new_rows.append({
-    #         "player_id": player_id,
-    #         "scenarios": row['scenarios'],
-    #         "ranking": ranking,
-    #         "round": round_id,
-    #         "game_id": game_id,
-    #         "scenario_id": row['scenario_id']
-    #     })
-
-    # # Concatenate the new rows with the existing DataFrame along the zeroth axis
-    # df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
-    # # Convert the list of dictionaries to a pandas DataFrame
-    # new_rankings_df = pd.DataFrame(new_rows, index=data_to_display.index)
-
-    # # st.write(new_rankings_df)
     
     # push the new_rows data into snowflake database RANKINGS table
     for (index, row), ranking in zip(data_to_display.iterrows(), rankings):
@@ -123,8 +101,6 @@ def get_player_distances(all_rankings, victim):
     st.write(victim_choice)
     distances = {}
     for player in all_rankings.columns:
-        # if player == victim:
-        #     continue
         player_guess = all_rankings[player].values
         distance = np.linalg.norm(victim_choice - player_guess)
         distances[player] = distance
