@@ -85,7 +85,7 @@ def same_scenarios(filepath, num_of_scenarios=5):
     """
     Problem is scenarios shown in each round are not the same for all players (per game per round)
     Function steps to get deterministic/ same scenarios for all players
-    seed for ULOMCF: 77254873795669
+    seed for ULOMCF: 77254873795669 will always be that even when close game but use same id 
     """
     all_scenarios_list = pd.read_csv(filepath, delimiter = "\t", names=['scenario'])['scenario'].to_list()
     game_code_seed = convert_to_number(st.session_state.game_code) # unique ID for game ID but same every time 
@@ -98,7 +98,7 @@ def same_scenarios(filepath, num_of_scenarios=5):
     #st.write(game_code_seed, all_scenarios_list)
     st.session_state["options_to_display"] = all_scenarios_list[start_indx:end_indx]
 
-    # if reach end? do try except
+    # if reach end do try except start over 
 
     return None
     
