@@ -112,7 +112,9 @@ def play_round_page():
     #     st.session_state["options_to_display"] = random.sample(
     #         data_scenarios["scenarios"].tolist(), 5
     #     )
-    gameplay.push_rows_to_db(file_path=scenarios_relative_path)
+    
+    # NOTE: this is how snowflake data is inserted into SCENARIO_METADATA TABLE
+    # gameplay.push_rows_to_db(file_path=scenarios_relative_path)
 
     if "round" not in st.session_state:
         st.session_state["round"] = 0
