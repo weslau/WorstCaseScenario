@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import random
 import streamlit as st
@@ -7,13 +8,21 @@ import utils.snowflake as snow
 import utils.wcs as wcs
 
 
+DB_NAME = wcs.DB_NAME
+SCHEMA_NAME = wcs.SCHEMA_NAME
+
 # @st.cache_data
 def display_user_rankings(player_id):
     user_rankings = get_user_rankings(player_id)
     return user_rankings
 
+def push_rows_to_db(file_path):
+    """upload scenarios from rows.txt to snowflake's SCENARIO_METADATA table
+    also should annotate each scenario_text in file with a scenario_id
 
-def read_rows_from_file(file_path):
+    Args:
+        file_path (file-like object or str): file object representing a .txt where scenario_text's are stored one per row
+    """
     with open(file_path, "r") as f:
         rows = f.readlines()
         # Remove trailing '\n' characters from each row
@@ -30,14 +39,16 @@ def read_rows_from_file(file_path):
     # Group by the 'scenario_ID' to remove duplicate scenarios. for duplicate IDs, keep the first instance of scenario text with that ID
     data_scenarios = data_scenarios.groupby("scenario_ID")["scenarios"].first().reset_index()
     # Rename cols as reminder this is how df is ordered now
-    data_scenarios.columns = ["scenario_ID", "scenarios"]
+    data_scenarios.columns = ["scenario_id", "scenario_text"]
     
-    # #Push this dataframe to DB via API calls
+    # Push this dataframe to DB table called SCENARIO_METADATA via API calls
+    for index, row in data_scenarios.iterrows():
+        # scenario_id = row['scenario_id']
+        # scenario_text = row['scenario_text']
+        table_columns = ["SCENARIO_CATEGORY", "SCENARIO_ID", "SCENARIO_TEXT"]
+        table_values = [None, row['scenario_id'], row['scenario_text']]
+        snow.push("SCENARIO_METADATA", table_columns, table_values)
     
-    
-    return data_scenarios
-
-
 def get_user_rankings(player_id):
     # Load the current rankings from the CSV file (TODO: transition to DB table "RANKINGS")
     try:
@@ -47,7 +58,6 @@ def get_user_rankings(player_id):
 
     # Filter the DataFrame to only show the rankings for the current user
     user_rankings = df[df["player_id"] == player_id]
-    
     ##instead, get user rankings from RANKINGS table and  show the ones from current player
     # get player_ID from player_INFO table from DB
     DB_NAME = wcs.DB_NAME
@@ -58,7 +68,6 @@ def get_user_rankings(player_id):
     df = snow.pull(query)
     user_rankings = df[df["PLAYER_ID"] == player_id]
     return user_rankings
-
 
 def save_rankings_to_file(rankings, player_id, data_to_display, round_id, game_id):
     # Load the current rankings from the CSV file
@@ -97,8 +106,37 @@ def save_rankings_to_file(rankings, player_id, data_to_display, round_id, game_i
     # Save the updated DataFrame to the CSV file
     df.to_csv("rankings.csv", index=False)
 
+def get_all_rankings(current_game, current_round):
+    query = f"""
+        SELECT t1.SCENARIO_ID, t1.PLAYER_ID, t2.PLAYER_NAME, t1.RANK from {DB_NAME}.{SCHEMA_NAME}.RANKINGS t1
+        JOIN {DB_NAME}.{SCHEMA_NAME}.PLAYER_INFO t2 ON t1.PLAYER_ID = t2.PLAYER_ID
+        WHERE GAME_ID LIKE {current_game} AND ROUND_NO = {current_round}
+        """
+    rankings = snow.pull(query)
+    all_rankings = pd.pivot_table(rankings, values='RANK', index='SCENARIO_ID', columns='PLAYER_NAME', aggfunc='sum')
+    return all_rankings
 
 
+def get_player_distances(all_rankings, victim):
+    st.write(all_rankings)
+    victim_choice = all_rankings[victim].values
+    st.write(victim_choice)
+    distances = {}
+    for player in all_rankings.columns:
+        # if player == victim:
+        #     continue
+        player_guess = all_rankings[player].values
+        distance = np.linalg.norm(victim_choice - player_guess)
+        distances[player] = distance
+    distance_df = pd.DataFrame.from_dict(distances, orient='index', columns=['Player', 'Distance']).reset_index()
+    return distance_df
+
+def save_distances_to_db(current_game, current_round, distance_df):
+    columns = ["GAME_ID", "ROUND_NO", "PLAYER_ID", "PLAYER_SCORE"]
+
+    for index, row in distance_df.iterrows():
+        values = [current_game, current_round, row["Player"], row["Distance"]]
+        snow.push(table_name="PLAYER_SCORES", columns=columns, values=values)
 
 def print_game_rules():
     st.markdown('''

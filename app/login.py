@@ -1,4 +1,4 @@
-
+import datetime as dt
 import streamlit as st
 import uuid, string
 
@@ -119,3 +119,16 @@ def login_page():
         st.session_state.player_name = pseudonym
         st.session_state.current_page = "welcome"
         st.experimental_rerun()
+
+    # Delete old games.
+    delete_old_games()
+
+
+def delete_old_games():
+    hours_to_delete = 24
+
+    query = f"""
+    DELETE from {DB_NAME}.{SCHEMA_NAME}.lobby_info
+        WHERE TIMEDIFF(hours, JOINED_AT, '{dt.datetime.now()}') > {hours_to_delete}
+    """
+    snow.pull(query)
