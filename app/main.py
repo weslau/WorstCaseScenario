@@ -1,9 +1,8 @@
 import streamlit as st
 import pandas as pd, datetime as dt
 import random
-import math
-
 import uuid
+import utils.snowflake as snow
 
 from login import login_page, create_account_page, existing_account_page
 from lobby import lobby_page
@@ -11,7 +10,6 @@ from lobby import lobby_page
 import utils.snowflake as snow
 import utils.wcs as wcs
 import gameplay as gameplay
-import os
 
 DB_NAME = wcs.DB_NAME
 SCHEMA_NAME = wcs.SCHEMA_NAME
@@ -19,7 +17,6 @@ SCHEMA_NAME = wcs.SCHEMA_NAME
 
 def logged_in_as():
     st.write(f"Logged in as: {st.session_state.player_name}")
-
 
 def welcome_page():
     wcs.header()
@@ -76,64 +73,60 @@ def game_start_page():
         st.session_state.current_page = "play round"
         st.experimental_rerun()
         
-    wcs.back_widget(to="lobby")
+    wcs.back_widget(to="lobby") # goes back to lobby page
 
 def convert_to_number(s):
     return int.from_bytes(s.encode(), 'little')
 
-def same_scenarios(filepath, num_of_scenarios=5):
+def same_scenarios(num_of_scenarios=5):
     """
     Problem is scenarios shown in each round are not the same for all players (per game per round)
     Function steps to get deterministic/ same scenarios for all players
-    seed for ULOMCF: 77254873795669 will always be that even when close game but use same id 
     """
-    all_scenarios_list = pd.read_csv(filepath, delimiter = "\t", names=['scenario'])['scenario'].to_list()
-    game_code_seed = convert_to_number(st.session_state.game_code) # unique ID for game ID but same every time 
+    # pull scenarios from snowflake
+    query = """
+        SELECT SCENARIO_TEXT
+        FROM SCENARIO_METADATA
+        """
+    all_scenarios_list = snow.pull(query=query)['SCENARIO_TEXT'].to_list()
+
+    # unique ID for game ID but same every time
+    game_code_seed = convert_to_number(st.session_state.game_code)  
     random.Random(game_code_seed).shuffle(all_scenarios_list)
     
-    # return 0-4 scenarios for 1st round, 5-9 second round, etc. 
-    start_indx = num_of_scenarios * st.session_state["round"]
+    # return 0-4 scenarios for 1st round, 5-9 second round, etc.
+    start_indx = num_of_scenarios * st.session_state["round"] % len(all_scenarios_list) 
     end_indx = start_indx + num_of_scenarios
+    if start_indx < len(all_scenarios_list) and end_indx <= len(all_scenarios_list):
+         st.session_state["options_to_display"] = all_scenarios_list[start_indx:end_indx]
 
-    #st.write(game_code_seed, all_scenarios_list)
-    st.session_state["options_to_display"] = all_scenarios_list[start_indx:end_indx]
-
-    # if reach end do try except start over 
+    else:
+        end_indx = num_of_scenarios - (len(all_scenarios_list) - start_indx)
+        st.session_state["options_to_display"] = all_scenarios_list[start_indx:] + all_scenarios_list[:end_indx]
 
     return None
     
 def play_round_page():
     # TEMPORARY BEFORE DB SETUP:Read rows from a text file and store them in a Pandas DataFrame
     # the full file path is actually scenarios_file_path = "/app/worstcasescenario/app/rows.txt"
-    scenarios_relative_path = "app/rows.txt"
-    
-    # data_scenarios = gameplay.read_rows_from_file(file_path=scenarios_relative_path)
-    # def get_random_options():
-    #     st.session_state["options_to_display"] = random.sample(
-    #         data_scenarios["scenarios"].tolist(), 5
-    #     )
-    
     # NOTE: this is how snowflake data is inserted into SCENARIO_METADATA TABLE
-    # gameplay.push_rows_to_db(file_path=scenarios_relative_path)
-
+    # gameplay.push_rows_to_db(file_path="app/rows.txt")
     if "round" not in st.session_state:
         st.session_state["round"] = 0
     # TODO: simplify this logic, does new_round need to be a variable?
     if "options_to_display" not in st.session_state or (
         st.session_state["new_round"] and st.button("Next Round")
     ):
-        # Randomly select 5 options to display
-        #get_random_options()
-        same_scenarios(scenarios_relative_path)
+        # select 5 options to display
+        same_scenarios()
         st.session_state["new_round"] = False
 
     if st.button("Next Round"):
         # TODO: Implement error checking logic. If not all users in this round of this game have submitted rankings, don't advance round if pressed
         st.session_state["round"] += 1
-        #get_random_options()
-        same_scenarios(scenarios_relative_path)
+        same_scenarios()
     options_to_display = st.session_state["options_to_display"]
-    ##data_to_display is a dataframe, subset of matching rows from data. data is 2 col dataframe with scenarios and rankings (is rankings needed?)
+    # data_to_display is a dataframe, subset of matching rows from data. data is 2 col dataframe with scenarios and rankings (is rankings needed?)
     # Create a DataFrame with the rows and an initial ranking of 0 for each row
     data_to_display = pd.DataFrame(
         {"scenarios": options_to_display, "ranking": [0] * len(options_to_display)},

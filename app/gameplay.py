@@ -11,31 +11,6 @@ def display_user_rankings(player_id):
     user_rankings = get_user_rankings(player_id)
     return user_rankings
 
-
-def read_rows_from_file(file_path):
-    with open(file_path, "r") as f:
-        rows = f.readlines()
-        # Remove trailing '\n' characters from each row
-        rows = [row.strip() for row in rows]
-
-    # Create a DataFrame with the rows and convert 'scenarios' to string type (in case it's not already)
-    data_scenarios = pd.DataFrame({"scenarios": rows})
-    data_scenarios['scenarios'] = data_scenarios['scenarios'].astype(str)
-
-    # Generate a scenario ID from hash of each row in 'scenarios'
-    # And create a new column for these as well
-    data_scenarios["scenario_ID"] = data_scenarios["scenarios"].apply(lambda x: hash(x))
-
-    # Group by the 'scenario_ID' to remove duplicate scenarios. for duplicate IDs, keep the first instance of scenario text with that ID
-    data_scenarios = data_scenarios.groupby("scenario_ID")["scenarios"].first().reset_index()
-    # Rename cols as reminder this is how df is ordered now
-    data_scenarios.columns = ["scenario_ID", "scenarios"]
-    
-    # #Push this dataframe to DB via API calls
-    
-    
-    return data_scenarios
-
 def push_rows_to_db(file_path):
     """upload scenarios from rows.txt to snowflake's SCENARIO_METADATA table
     also should annotate each scenario_text in file with a scenario_id
@@ -61,14 +36,13 @@ def push_rows_to_db(file_path):
     # Rename cols as reminder this is how df is ordered now
     data_scenarios.columns = ["scenario_id", "scenario_text"]
     
-    #Push this dataframe to DB table called SCENARIO_METADATA via API calls
+    # Push this dataframe to DB table called SCENARIO_METADATA via API calls
     for index, row in data_scenarios.iterrows():
         # scenario_id = row['scenario_id']
         # scenario_text = row['scenario_text']
         table_columns = ["SCENARIO_CATEGORY", "SCENARIO_ID", "SCENARIO_TEXT"]
         table_values = [None, row['scenario_id'], row['scenario_text']]
         snow.push("SCENARIO_METADATA", table_columns, table_values)
-    
     
 def get_user_rankings(player_id):
     # Load the current rankings from the CSV file (TODO: transition to DB table "RANKINGS")
@@ -82,7 +56,6 @@ def get_user_rankings(player_id):
     print(user_rankings)
 
     return user_rankings
-
 
 def save_rankings_to_file(rankings, player_id, data_to_display, round_id, game_id):
     # Load the current rankings from the CSV file
@@ -108,9 +81,6 @@ def save_rankings_to_file(rankings, player_id, data_to_display, round_id, game_i
     st.write(df)
     # Save the updated DataFrame to the CSV file
     df.to_csv("rankings.csv", index=False)
-
-
-
 
 def print_game_rules():
     st.markdown('''

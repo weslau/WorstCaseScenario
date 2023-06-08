@@ -29,6 +29,7 @@ def pull(query):
         cursor.execute(query)
         result = cursor.fetchall()
         colnames = [x[0] for x in cursor.description]
+        
         return pd.DataFrame(result, columns=colnames)
     
     finally:
