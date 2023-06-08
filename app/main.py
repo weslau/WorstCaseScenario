@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd, datetime as dt
 import random
+import time
 
 import uuid
 
@@ -153,7 +154,7 @@ def play_round_page():
         """
         # GAME_CODE,GAME_ID,GAME_TIME_START, IS_ACTIVE all included in df_games
         df_games = snow.pull(query)
-        game_id = df_games[df_games['GAME_CODE']== st.session_state.game_code]["GAME_ID"][0]
+        game_id = df_games[df_games['GAME_CODE']== st.session_state.game_code]["GAME_ID"].iloc[0]
         
         # write another function that generates scenario_ID's from data_to_display scenario_strings
         data_to_display['scenario_id'] = data_to_display.apply(lambda row: str(uuid.uuid4()), axis=1)
@@ -172,13 +173,31 @@ def play_round_page():
         # st.write(user_rankings.drop(["player_id","round","game_id"], axis=1))
         wcs.back_widget(to="lobby")
 
+
+        current_game, current_round = game_id, st.session_state.round
+        # Check if all players have submitted
+        ranking_query = f"""
+            SELECT t1.SCENARIO_ID, t1.PLAYER_ID, t2.PLAYER_NAME, t1.RANK from {DB_NAME}.{SCHEMA_NAME}.RANKINGS t1
+            JOIN {DB_NAME}.{SCHEMA_NAME}.PLAYER_INFO t2 ON t1.PLAYER_ID = t2.PLAYER_ID
+            WHERE GAME_ID LIKE '{current_game}' AND ROUND_NO = {current_round}
+            """
+        rankings = snow.pull(ranking_query)
+        lobby_query = f"""
+            SELECT GAME_CODE, PLAYER_NAME from {DB_NAME}.{SCHEMA_NAME}.LOBBY_INFO
+            WHERE GAME_CODE LIKE '{st.session_state.game_code}'
+            """
+        lobby = snow.pull(lobby_query)
+        st.write("Waiting for other players...")
+        while rankings["PLAYER_ID"].nunique() < lobby["PLAYER_NAME"].nunique():
+            time.sleep(1)
+
         # Wait for everyone to submit scores
-        current_game, current_round = "1234", 0
         victim="weslau"
         all_rankings = gameplay.get_all_rankings(current_game, current_round)
+        st.write(all_rankings)
         distance_df = gameplay.get_player_distances(all_rankings, victim=victim)
         st.write(distance_df)
-        gameplay.save_distances_to_db(current_game, current_round, distance_df)        
+        gameplay.save_distances_to_db(current_game, current_round, distance_df) 
 
 
 if __name__ == "__main__":
