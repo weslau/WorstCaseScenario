@@ -110,7 +110,7 @@ def get_all_rankings(current_game, current_round):
     query = f"""
         SELECT t1.SCENARIO_ID, t1.PLAYER_ID, t2.PLAYER_NAME, t1.RANK from {DB_NAME}.{SCHEMA_NAME}.RANKINGS t1
         JOIN {DB_NAME}.{SCHEMA_NAME}.PLAYER_INFO t2 ON t1.PLAYER_ID = t2.PLAYER_ID
-        WHERE GAME_ID LIKE {current_game} AND ROUND_NO = {current_round}
+        WHERE GAME_ID LIKE '{current_game}' AND ROUND_NO = {current_round}
         """
     rankings = snow.pull(query)
     all_rankings = pd.pivot_table(rankings, values='RANK', index='SCENARIO_ID', columns='PLAYER_NAME', aggfunc='sum')
@@ -128,6 +128,8 @@ def get_player_distances(all_rankings, victim):
         player_guess = all_rankings[player].values
         distance = np.linalg.norm(victim_choice - player_guess)
         distances[player] = distance
+        distances[player] = [player, 10]
+    st.write(distances)
     distance_df = pd.DataFrame.from_dict(distances, orient='index', columns=['Player', 'Distance']).reset_index()
     return distance_df
 
