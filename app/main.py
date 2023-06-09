@@ -117,6 +117,8 @@ def play_round_page():
     # the full file path is actually scenarios_file_path = "/app/worstcasescenario/app/rows.txt"
     # NOTE: this is how snowflake data is inserted into SCENARIO_METADATA TABLE
     # gameplay.push_rows_to_db(file_path="app/rows.txt")
+    if "round" not in st.session_state:
+        st.session_state["round"] = 0
     if "options_to_display" not in st.session_state or (
         st.session_state["new_round"] and st.button("Next Round")
     ):
