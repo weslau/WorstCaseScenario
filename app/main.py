@@ -206,7 +206,7 @@ def play_round_page():
 
         st.write("\n\n\n")
         # st.write(user_rankings.drop(["player_id","round","game_id"], axis=1))
-        wcs.back_widget(to="lobby")
+        # wcs.back_widget(to="lobby")
 
 
         current_game, current_round = game_id, st.session_state.round
