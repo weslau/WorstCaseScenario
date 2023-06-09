@@ -100,6 +100,7 @@ def same_scenarios(num_of_scenarios=5):
     
     # return 0-4 scenarios for 1st round, 5-9 second round, etc.
     start_indx = num_of_scenarios * st.session_state["round"] % len(all_scenarios_list) 
+    st.write(f"THE START INDEX IS {start_indx}")
     end_indx = start_indx + num_of_scenarios
     if start_indx < len(all_scenarios_list) and end_indx <= len(all_scenarios_list):
          st.session_state["options_to_display"] = all_scenarios_list[start_indx:end_indx]
@@ -116,9 +117,6 @@ def play_round_page():
     # the full file path is actually scenarios_file_path = "/app/worstcasescenario/app/rows.txt"
     # NOTE: this is how snowflake data is inserted into SCENARIO_METADATA TABLE
     # gameplay.push_rows_to_db(file_path="app/rows.txt")
-    if "round" not in st.session_state:
-        st.session_state["round"] = 0
-    # TODO: simplify this logic, does new_round need to be a variable?
     if "options_to_display" not in st.session_state or (
         st.session_state["new_round"] and st.button("Next Round")
     ):
@@ -164,6 +162,7 @@ def play_round_page():
     # Generate "Submit" button to send user rankings to DB
     submit_rankings_button = st.button("Submit")
     if submit_rankings_button:
+        st.write("Submitting...")
         # TODO: query game_id from db for current game (how?) and pass it into save_rankings_to_file
         
         # get player_ID from player_INFO table from DB
@@ -207,23 +206,52 @@ def play_round_page():
             JOIN {DB_NAME}.{SCHEMA_NAME}.PLAYER_INFO t2 ON t1.PLAYER_ID = t2.PLAYER_ID
             WHERE GAME_ID LIKE '{current_game}' AND ROUND_NO = {current_round}
             """
-        rankings = snow.pull(ranking_query)
         lobby_query = f"""
             SELECT GAME_CODE, PLAYER_NAME from {DB_NAME}.{SCHEMA_NAME}.LOBBY_INFO
             WHERE GAME_CODE LIKE '{st.session_state.game_code}'
             """
-        lobby = snow.pull(lobby_query)
         st.write("Waiting for other players...")
-        while rankings["PLAYER_ID"].nunique() < lobby["PLAYER_NAME"].nunique():
+        submitted_count = snow.pull(ranking_query)["PLAYER_ID"].nunique()
+        lobby_df = snow.pull(lobby_query)
+        player_count = lobby_df["PLAYER_NAME"].nunique()
+        while submitted_count < player_count:
+            submitted_count = snow.pull(ranking_query)["PLAYER_ID"].nunique()
             time.sleep(1)
 
         # Wait for everyone to submit scores
-        victim="weslau"
+        victim_index = (int(current_round))%(player_count)
+        victim = list(lobby_df["PLAYER_NAME"].unique())[victim_index]
+
         all_rankings = gameplay.get_all_rankings(current_game, current_round)
         st.write(all_rankings)
         distance_df = gameplay.get_player_distances(all_rankings, victim=victim)
         st.write(distance_df)
         gameplay.save_distances_to_db(current_game, current_round, distance_df) 
+
+        # # TODO: simplify this logic, does new_round need to be a variable?
+        # if "options_to_display" not in st.session_state or (
+        #     st.session_state["new_round"] and st.button("Next Round")
+        # ):
+        #     st.write("AAAAA")
+        #     # select 5 options to display
+        #     same_scenarios()
+        #     st.session_state["new_round"] = False
+
+    # next_round_button = st.button("Next Round", key="Next Round")
+    # if st.session_state["everyone_submitted"] == True:
+    #     if next_round_button:
+    #         st.write("BBBBB")
+    #         time.sleep(2)
+    #         st.session_state["new_round"] = True
+    #         # TODO: Implement error checking logic. If not all users in this round of this game have submitted rankings, don't advance round if pressed
+    #         st.session_state["round"] += 1
+    #         # same_scenarios()
+            # st.experimental_rerun()
+    #     else:
+    #         st.write("Submit your rankings first")
+    # else:
+    #     st.write("ZZZ")
+    #     time.sleep(2)
 
 
 if __name__ == "__main__":
@@ -243,10 +271,10 @@ if __name__ == "__main__":
     if "current_page" not in st.session_state:
         login_page()
 
-        current_game, current_round = "1234", 0
-        all_rankings = gameplay.get_all_rankings(current_game, current_round)
-        distance_df = gameplay.get_player_distances(all_rankings, victim="weslau")
-        gameplay.save_distances_to_db(current_game, current_round, distance_df)
+        # current_game, current_round = "1234", 0
+        # all_rankings = gameplay.get_all_rankings(current_game, current_round)
+        # distance_df = gameplay.get_player_distances(all_rankings, victim="weslau")
+        # gameplay.save_distances_to_db(current_game, current_round, distance_df)
     
     else:
         page_dict[st.session_state.current_page]()
