@@ -106,6 +106,14 @@ def same_scenarios(num_of_scenarios=5):
         st.session_state["options_to_display"] = all_scenarios_list[start_indx:] + all_scenarios_list[:end_indx]
 
     return None
+
+def click_next_button():
+    table_columns = ["CLICK_NEXT", "GAME_ID", "PLAYER_ID", "ROUND_NO"]
+    table_values = [True, st.session_state.game_id,  st.session_state["round"]]
+    # snow.push("NEXT_STATUS", table_columns, table_values)
+    st.write(st.session_state)
+
+    return None
     
 def play_round_page():
     # TEMPORARY BEFORE DB SETUP:Read rows from a text file and store them in a Pandas DataFrame
@@ -126,6 +134,7 @@ def play_round_page():
         # TODO: Implement error checking logic. If not all users in this round of this game have submitted rankings, don't advance round if pressed
         st.session_state["round"] += 1
         same_scenarios()
+        click_next_button()
     options_to_display = st.session_state["options_to_display"]
     # data_to_display is a dataframe, subset of matching rows from data. data is 2 col dataframe with scenarios and rankings (is rankings needed?)
     # Create a DataFrame with the rows and an initial ranking of 0 for each row
