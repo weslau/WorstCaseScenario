@@ -171,6 +171,17 @@ def play_round_page():
             data_to_display["scenarios"] == row["scenarios"], "ranking"
         ] = radio
         rankings.append(radio)
+
+    lobby_query = f"""
+        SELECT GAME_CODE, PLAYER_NAME from {DB_NAME}.{SCHEMA_NAME}.LOBBY_INFO
+        WHERE GAME_CODE LIKE '{st.session_state.game_code}'
+        """
+    lobby_df = snow.pull(lobby_query)
+    player_count = lobby_df["PLAYER_NAME"].nunique()
+    current_round = st.session_state.round
+    victim_index = (int(current_round))%(player_count)
+    victim = list(lobby_df["PLAYER_NAME"].unique())[victim_index]
+    st.write(f"Victim: {victim}")
         
     # Generate "Submit" button to send user rankings to DB
     submit_rankings_button = st.button("Submit")
@@ -221,16 +232,19 @@ def play_round_page():
             WHERE GAME_CODE LIKE '{st.session_state.game_code}'
             """
         st.write("Waiting for other players...")
-        submitted_count = snow.pull(ranking_query)["PLAYER_ID"].nunique()
+        ranking_df = snow.pull(ranking_query)
+        submitted_count = ranking_df["PLAYER_ID"].nunique()
         lobby_df = snow.pull(lobby_query)
         player_count = lobby_df["PLAYER_NAME"].nunique()
-        while submitted_count < player_count:
-            submitted_count = snow.pull(ranking_query)["PLAYER_ID"].nunique()
+        while (submitted_count < player_count): 
+            ranking_df = snow.pull(ranking_query)
+            submitted_count = ranking_df["PLAYER_ID"].nunique()                
+            time.sleep(1)
+        while (ranking_df['PLAYER_ID'].value_counts() != 5).any():
+            ranking_df = snow.pull(ranking_query)                
             time.sleep(1)
 
         # Wait for everyone to submit scores
-        victim_index = (int(current_round))%(player_count)
-        victim = list(lobby_df["PLAYER_NAME"].unique())[victim_index]
 
         all_rankings = gameplay.get_all_rankings(current_game, current_round)
         st.write(all_rankings)
@@ -238,30 +252,6 @@ def play_round_page():
         st.write(distance_df)
         gameplay.save_distances_to_db(current_game, current_round, distance_df) 
 
-        # # TODO: simplify this logic, does new_round need to be a variable?
-        # if "options_to_display" not in st.session_state or (
-        #     st.session_state["new_round"] and st.button("Next Round")
-        # ):
-        #     st.write("AAAAA")
-        #     # select 5 options to display
-        #     same_scenarios()
-        #     st.session_state["new_round"] = False
-
-    # next_round_button = st.button("Next Round", key="Next Round")
-    # if st.session_state["everyone_submitted"] == True:
-    #     if next_round_button:
-    #         st.write("BBBBB")
-    #         time.sleep(2)
-    #         st.session_state["new_round"] = True
-    #         # TODO: Implement error checking logic. If not all users in this round of this game have submitted rankings, don't advance round if pressed
-    #         st.session_state["round"] += 1
-    #         # same_scenarios()
-            # st.experimental_rerun()
-    #     else:
-    #         st.write("Submit your rankings first")
-    # else:
-    #     st.write("ZZZ")
-    #     time.sleep(2)
 
 
 if __name__ == "__main__":
@@ -281,10 +271,5 @@ if __name__ == "__main__":
     if "current_page" not in st.session_state:
         login_page()
 
-        # current_game, current_round = "1234", 0
-        # all_rankings = gameplay.get_all_rankings(current_game, current_round)
-        # distance_df = gameplay.get_player_distances(all_rankings, victim="weslau")
-        # gameplay.save_distances_to_db(current_game, current_round, distance_df)
-    
     else:
         page_dict[st.session_state.current_page]()
