@@ -89,26 +89,37 @@ def same_scenarios(num_of_scenarios=5):
     """
     # pull scenarios from snowflake
     query = """
-        SELECT SCENARIO_TEXT
+        SELECT *
         FROM SCENARIO_METADATA
         """
-    all_scenarios_list = snow.pull(query=query)['SCENARIO_TEXT'].to_list()
-
+    df_scenarios = snow.pull(query=query)
+    # all_scenarios_list = df_scenarios['SCENARIO_TEXT'].to_list()
+    df_scenarios['tuples'] = df_scenarios.apply(lambda row: (row['SCENARIO_TEXT'], row['SCENARIO_ID']), axis=1)
+    scenario_tuples_list = df_scenarios['tuples'].to_list()
+    st.session_state["curr_scenario_tuples"] = scenario_tuples_list
     # unique ID for game ID but same every time
     game_code_seed = convert_to_number(st.session_state.game_code)  
-    random.Random(game_code_seed).shuffle(all_scenarios_list)
+    random.Random(game_code_seed).shuffle(scenario_tuples_list)
     
     # return 0-4 scenarios for 1st round, 5-9 second round, etc.
-    start_indx = num_of_scenarios * st.session_state["round"] % len(all_scenarios_list) 
-    st.write(f"THE START INDEX IS {start_indx}")
+    start_indx = num_of_scenarios * st.session_state["round"] % len(scenario_tuples_list) 
     end_indx = start_indx + num_of_scenarios
-    if start_indx < len(all_scenarios_list) and end_indx <= len(all_scenarios_list):
-         st.session_state["options_to_display"] = all_scenarios_list[start_indx:end_indx]
+    if start_indx < len(scenario_tuples_list) and end_indx <= len(scenario_tuples_list):
+        scenario_ids = [tup[1] for tup in scenario_tuples_list[start_indx:end_indx]]
+        scenario_texts = [tup[0] for tup in scenario_tuples_list[start_indx:end_indx]]
+        st.session_state["options_to_display"] = scenario_texts
+        st.session_state["curr_scenario_ids"] = scenario_ids
 
     else:
-        end_indx = num_of_scenarios - (len(all_scenarios_list) - start_indx)
-        st.session_state["options_to_display"] = all_scenarios_list[start_indx:] + all_scenarios_list[:end_indx]
-
+        end_indx = num_of_scenarios - (len(scenario_tuples_list) - start_indx)
+        # st.session_state["options_to_display"] 
+        # subset_scenario_tuples = scenario_tuples_list[start_indx:] + scenario_tuples_list[:end_indx]
+        scenario_ids = [tup[1] for tup in scenario_tuples_list[start_indx:] + scenario_tuples_list[:end_indx]]
+        scenario_texts = [tup[0] for tup in scenario_tuples_list[start_indx:end_indx]]
+        st.session_state["options_to_display"] = scenario_texts
+        st.session_state["curr_scenario_ids"] = scenario_ids
+    # now that you have the scenario text list in st.session_state["options_to_display"]
+    # look up the scenario ID's (in scenario metadata table) for the corresponding variable text 
     return None
     
 def play_round_page():
@@ -134,8 +145,8 @@ def play_round_page():
     # data_to_display is a dataframe, subset of matching rows from data. data is 2 col dataframe with scenarios and rankings (is rankings needed?)
     # Create a DataFrame with the rows and an initial ranking of 0 for each row
     data_to_display = pd.DataFrame(
-        {"scenarios": options_to_display, "ranking": [0] * len(options_to_display)},
-        columns=["scenarios", "ranking"],
+        {"scenarios": options_to_display, "ranking": [0] * len(options_to_display), "scenario_id":st.session_state["curr_scenario_ids"]},
+        columns=["scenarios", "ranking", "scenario_id"],
     )
 
     # Display the options and radio buttons for the current user
@@ -180,23 +191,20 @@ def play_round_page():
         where IS_ACTIVE = TRUE
         """
         # GAME_CODE,GAME_ID,GAME_TIME_START, IS_ACTIVE all included in df_games
+        ## VALIDATE: is the current came always = 0?
         df_games = snow.pull(query)
         game_id = df_games[df_games['GAME_CODE']== st.session_state.game_code]["GAME_ID"].iloc[0]
+        game_id = df_games[df_games['GAME_CODE']== st.session_state.game_code]["GAME_ID"].iloc[0]
         
-        # write another function that generates scenario_ID's from data_to_display scenario_strings
-        data_to_display['scenario_id'] = data_to_display.apply(lambda row: str(uuid.uuid4()), axis=1)
-        # TODO: push that scenario & scenario ID table to SCENARIO_METADATA
         
         # then make save_rankings_to_db function take in scenario ID's and push the ranking data into snowflake when submitted
         gameplay.save_rankings_to_file(rankings, curr_player_id, data_to_display,round_id=st.session_state["round"],game_id=game_id)
-        st.write(f"{st.session_state.game_code} {game_id} was submitted to db")
     
-        # Show the rankings table for the current user, current round
-        user_rankings = gameplay.get_user_rankings(curr_player_id).tail(5)
-        st.write(user_rankings)
+        # # Show the rankings table for the current user, current round
+        # user_rankings = gameplay.get_user_rankings(curr_player_id).tail(5)
+        # st.write(user_rankings)
 
         st.write("\n\n\n")
-        st.write("Newest rankings:")
         # st.write(user_rankings.drop(["player_id","round","game_id"], axis=1))
         wcs.back_widget(to="lobby")
 
