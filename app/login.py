@@ -110,15 +110,15 @@ def login_page():
         st.experimental_rerun()
 
     st.write("\n")
-    guest_login_button = st.button("Continue as guest")
+    # guest_login_button = st.button("Continue as guest")
 
-    if guest_login_button:
-        pseudonym = wcs.generate_pseudonym()
-        st.success(f"Logging in as `{pseudonym}`!")
+    # if guest_login_button:
+    #     pseudonym = wcs.generate_pseudonym()
+    #     st.success(f"Logging in as `{pseudonym}`!")
 
-        st.session_state.player_name = pseudonym
-        st.session_state.current_page = "welcome"
-        st.experimental_rerun()
+    #     st.session_state.player_name = pseudonym
+    #     st.session_state.current_page = "welcome"
+    #     st.experimental_rerun()
 
     # Delete old games.
     delete_old_games()

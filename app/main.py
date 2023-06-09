@@ -195,7 +195,7 @@ def play_round_page():
         st.write("\n\n\n")
         st.write("Newest rankings:")
         # st.write(user_rankings.drop(["player_id","round","game_id"], axis=1))
-        wcs.back_widget(to="lobby")
+        # wcs.back_widget(to="lobby")
 
         # Wait for everyone to submit scores
         current_game, current_round = "1234", 0
