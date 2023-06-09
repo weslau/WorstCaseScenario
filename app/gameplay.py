@@ -127,19 +127,16 @@ def get_all_rankings(current_game, current_round):
 
 
 def get_player_distances(all_rankings, victim):
-    st.write(all_rankings)
     victim_choice = all_rankings[victim].values
-    st.write(victim_choice)
     distances = {}
     for player in all_rankings.columns:
         # if player == victim:
         #     continue
         player_guess = all_rankings[player].values
         distance = np.linalg.norm(victim_choice - player_guess)
-        distances[player] = distance
-        distances[player] = [player, 10]
-    st.write(distances)
-    distance_df = pd.DataFrame.from_dict(distances, orient='index', columns=['Player', 'Distance']).reset_index()
+        # distances[player] = distance
+        distances[player] = [player, distance]
+    distance_df = pd.DataFrame.from_dict(distances, orient='index', columns=['Player', 'Distance']).reset_index(drop=True)
     return distance_df
 
 def save_distances_to_db(current_game, current_round, distance_df):
