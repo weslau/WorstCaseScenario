@@ -194,14 +194,12 @@ def play_round_page():
         
         # then make save_rankings_to_db function take in scenario ID's and push the ranking data into snowflake when submitted
         gameplay.save_rankings_to_file(rankings, curr_player_id, data_to_display,round_id=st.session_state["round"],game_id=game_id)
-        st.write(f"{st.session_state.game_code} {game_id} was submitted to db")
     
-        # Show the rankings table for the current user, current round
-        user_rankings = gameplay.get_user_rankings(curr_player_id).tail(5)
-        st.write(user_rankings)
+        # # Show the rankings table for the current user, current round
+        # user_rankings = gameplay.get_user_rankings(curr_player_id).tail(5)
+        # st.write(user_rankings)
 
         st.write("\n\n\n")
-        st.write("Newest rankings:")
         # st.write(user_rankings.drop(["player_id","round","game_id"], axis=1))
         wcs.back_widget(to="lobby")
 
