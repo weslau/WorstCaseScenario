@@ -70,6 +70,15 @@ def get_user_rankings(player_id):
     return user_rankings
 
 def save_rankings_to_file(rankings, player_id, data_to_display, round_id, game_id):
+    """saves the player ranking data and associated metadata into snowflake database RANKINGS table
+
+    Args:
+        rankings (_type_): _description_
+        player_id (_type_): _description_
+        data_to_display (_type_): _description_
+        round_id (_type_): _description_
+        game_id (_type_): _description_
+    """
     # Load the current rankings from the CSV file
     try:
         df = pd.read_csv("rankings.csv")
