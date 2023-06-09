@@ -117,12 +117,13 @@ def save_rankings_to_file(rankings, player_id, data_to_display, round_id, game_i
 
 def get_all_rankings(current_game, current_round):
     query = f"""
-        SELECT t1.SCENARIO_ID, t1.PLAYER_ID, t2.PLAYER_NAME, t1.RANK from {DB_NAME}.{SCHEMA_NAME}.RANKINGS t1
+        SELECT t3.SCENARIO_TEXT, t1.PLAYER_ID, t2.PLAYER_NAME, t1.RANK from {DB_NAME}.{SCHEMA_NAME}.RANKINGS t1
         JOIN {DB_NAME}.{SCHEMA_NAME}.PLAYER_INFO t2 ON t1.PLAYER_ID = t2.PLAYER_ID
+        JOIN {DB_NAME}.{SCHEMA_NAME}.SCENARIO_METADATA t3 on t1.SCENARIO_ID = t3.SCENARIO_ID
         WHERE GAME_ID LIKE '{current_game}' AND ROUND_NO = {current_round}
         """
     rankings = snow.pull(query)
-    all_rankings = pd.pivot_table(rankings, values='RANK', index='SCENARIO_ID', columns='PLAYER_NAME', aggfunc='sum')
+    all_rankings = pd.pivot_table(rankings, values='RANK', index='SCENARIO_TEXT', columns='PLAYER_NAME', aggfunc='sum')
     return all_rankings
 
 

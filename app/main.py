@@ -247,6 +247,7 @@ def play_round_page():
         # Wait for everyone to submit scores
 
         all_rankings = gameplay.get_all_rankings(current_game, current_round)
+        st.write("all rankings is ")
         st.write(all_rankings)
         distance_df = gameplay.get_player_distances(all_rankings, victim=victim)
         st.write(distance_df)
